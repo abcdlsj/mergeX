@@ -1,0 +1,164 @@
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+    'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color-scheme: light dark;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+}
+
+main {
+  padding: 16px;
+}
+
+h3 {
+  color: #333333;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-button {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.4;
+  text-align: left;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.action-button:hover {
+  background-color: #f8f8f8;
+  border-color: #d0d0d0;
+}
+
+.action-button:active {
+  background-color: #f0f0f0;
+  border-color: #cccccc;
+}
+
+.action-button::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+  background-color: #40c463;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.action-button.merge::before {
+  background-color: #40c463; /* 绿色 */
+}
+
+.action-button.sort::before {
+  background-color: #6e40c4; /* 紫色 */
+}
+
+.action-button.clean::before {
+  background-color: #c49b40; /* 金色 */
+}
+
+.action-button.ungroup::before {
+  background-color: #c44040; /* 红色 */
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #2c2c2c;
+  }
+
+  h3 {
+    color: #ffffff;
+  }
+
+  .action-button {
+    background-color: #3a3a3a;
+    color: #ffffff;
+    border-color: #4a4a4a;
+  }
+
+  .action-button:hover {
+    background-color: #404040;
+    border-color: #505050;
+  }
+
+  .action-button:active {
+    background-color: #454545;
+    border-color: #555555;
+  }
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 12px 16px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  /* 继承父按钮的样式 */
+  font-family: inherit;
+}
+
+/* 继承主按钮的暗色模式样式 */
+@media (prefers-color-scheme: dark) {
+  .dropdown-content {
+    background-color: #3a3a3a;
+  }
+  
+  .dropdown-item {
+    color: #ffffff;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #404040;
+  }
+}
