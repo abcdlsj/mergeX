@@ -1,9 +1,9 @@
 {
   "name": "mergex",
-  "displayName": "mergeX",
+  "displayName": "MergeX",
   "version": "1.0.0",
   "author": "abcdlsj",
-  "description": "A chrome extension for merging tabs",
+  "description": "A comprehensive tab management extension for Chrome",
   "type": "module",
   "license": "MIT",
   "keywords": [

@@ -3,40 +3,45 @@ import './index.css'
 document.addEventListener('DOMContentLoaded', () => {
   const appElement = document.getElementById('app')
   
-  // 创建主元素
+  // Create main element
   const mainElement = document.createElement('main')
   
-  // 创建标题
+  // Create title
   const h3Element = document.createElement('h3')
-  h3Element.textContent = 'Actions'
+  h3Element.textContent = 'Tab Management'
   
-  // 创建按钮容器
+  // Create button container
   const buttonContainer = document.createElement('div')
   buttonContainer.className = 'button-container'
   
-  // 合并按钮
+  // Merge button
   const mergeButton = document.createElement('button')
-  mergeButton.textContent = 'MERGE'
+  mergeButton.textContent = 'Merge Tabs'
   mergeButton.className = 'action-button merge'
+  mergeButton.title = 'Merge tabs from all windows and remove duplicates'
   
-  // 排序按钮
+  // Sort button
   const sortButton = document.createElement('button')
-  sortButton.textContent = 'SORT'
+  sortButton.textContent = 'Sort by Domain'
   sortButton.className = 'action-button sort'
+  sortButton.title = 'Sort tabs by domain name'
   
-  // 修改分组按钮为独立按钮
+  // Group buttons
   const groupByTimeButton = document.createElement('button')
-  groupByTimeButton.textContent = 'GROUP BY TIME'
+  groupByTimeButton.textContent = 'Group by Time'
   groupByTimeButton.className = 'action-button clean'
+  groupByTimeButton.title = 'Group tabs by last access time'
   
   const groupByDomainButton = document.createElement('button')
-  groupByDomainButton.textContent = 'GROUP BY DOMAIN'
+  groupByDomainButton.textContent = 'Group by Domain'
   groupByDomainButton.className = 'action-button clean'
+  groupByDomainButton.title = 'Group tabs by domain name'
   
-  // 解除分组按钮
+  // Ungroup button
   const ungroupButton = document.createElement('button')
-  ungroupButton.textContent = 'UNGROUP'
+  ungroupButton.textContent = 'Ungroup All'
   ungroupButton.className = 'action-button ungroup'
+  ungroupButton.title = 'Remove all tab groups'
   
   // 排序功能
   sortButton.addEventListener('click', async () => {
@@ -348,9 +353,22 @@ document.addEventListener('DOMContentLoaded', () => {
   buttonContainer.appendChild(groupByTimeButton)
   buttonContainer.appendChild(groupByDomainButton)
   buttonContainer.appendChild(ungroupButton)
+
+  // Create settings button
+  const settingsButton = document.createElement('button')
+  settingsButton.textContent = 'Settings'
+  settingsButton.className = 'action-button settings'
+  settingsButton.title = 'Open extension settings'
+  settingsButton.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage()
+  })
   
-  // 添加元素到页面
+  // Add elements to page
   mainElement.appendChild(h3Element)
   mainElement.appendChild(buttonContainer)
+  mainElement.appendChild(settingsButton)
   appElement.appendChild(mainElement)
+  
+  // Show success message when popup opens
+  chrome.action.setBadgeText({ text: '' })
 })
