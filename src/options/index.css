@@ -11,40 +11,30 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-  padding: 2rem;
-  max-width: 800px;
+  padding: 32px 24px;
+  max-width: 720px;
   margin: 0 auto;
-  color: #202124;
-  background-color: #ffffff;
-  line-height: 1.5;
+  color: #1f2937;
+  background-color: #fafafa;
+  line-height: 1.6;
 }
 
 h1 {
-  color: #202124;
-  font-size: 24px;
-  font-weight: 500;
-  margin: 0 0 24px 0;
-  position: relative;
-  padding-bottom: 12px;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
 }
 
-h1::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 60px;
-  height: 3px;
-  background-color: var(--primary-color);
-  border-radius: 1.5px;
-}
+h1::after { content: none; }
 
 .setting-item {
-  margin-bottom: 24px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: var(--border-radius);
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03);
 }
 
 .setting-item label {
@@ -88,35 +78,33 @@ h1::after {
   background-color: #3367d6;
 }
 
-.site-list {
-  margin-top: 24px;
-  border-top: 1px solid #dadce0;
-  padding-top: 16px;
-}
+.site-list { margin-top: 12px; }
 
 .site-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  justify-content: space-between;
+  padding: 10px 12px;
   margin-bottom: 8px;
-  background-color: white;
-  border-radius: var(--border-radius);
-  border: 1px solid #dadce0;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.05);
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
 }
 
 .site-item span {
   flex-grow: 1;
-  margin-right: 16px;
+  margin-right: 12px;
   font-size: 14px;
   font-weight: 500;
+  color: #111827;
 }
 
 .site-item label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  margin-right: 16px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .site-item .ignore-query {
@@ -127,8 +115,9 @@ h1::after {
   background-color: var(--danger-color);
   color: white;
   border: none;
-  border-radius: var(--border-radius);
-  padding: 6px 12px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  line-height: 1;
   font-size: 12px;
   cursor: pointer;
   transition: background-color var(--transition-speed) ease;
@@ -140,17 +129,13 @@ h1::after {
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #292a2d;
-    color: #e8eaed;
+    background-color: #111827;
+    color: #e5e7eb;
   }
   
-  h1 {
-    color: #e8eaed;
-  }
+  h1 { color: #f9fafb; }
   
-  .setting-item {
-    background-color: #35363a;
-  }
+  .setting-item { background-color: #0f172a; border-color: #1f2937; }
   
   .setting-item input[type="text"] {
     background-color: #202124;
@@ -158,12 +143,7 @@ h1::after {
     border-color: #5f6368;
   }
   
-  .site-list {
-    border-color: #5f6368;
-  }
+  .site-list { border-color: transparent; }
   
-  .site-item {
-    background-color: #202124;
-    border-color: #5f6368;
-  }
+  .site-item { background-color: #111827; border-color: #1f2937; }
 }

@@ -1,6 +1,6 @@
 import './index.css'
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const appElement = document.getElementById('app')
   
   // Create main element
@@ -121,27 +121,58 @@ document.addEventListener('DOMContentLoaded', () => {
           
           try {
             if (window.tabs) {
-              const tabsToMove = []
+              // 收集源窗口的分组信息
+              const groupMetaById = {}
+              try {
+                const groups = await chrome.tabGroups.query({ windowId: window.id })
+                for (const g of groups) {
+                  groupMetaById[g.id] = { title: g.title, color: g.color, collapsed: g.collapsed }
+                }
+              } catch (_) {}
+
+              const ungroupedToMove = []
+              const groupedToMove = new Map() // Map<groupId, tabIds[]>
+
               for (const tab of window.tabs) {
-                if (!tab.url || tab.pinned) {
-                  tabsToMove.push(tab.id) // 移动固定标签页
+                if (tab.pinned) {
+                  // 固定标签直接移动
+                  ungroupedToMove.push(tab.id)
                   continue
                 }
-                
+                if (!tab.url) {
+                  ungroupedToMove.push(tab.id)
+                  continue
+                }
+
                 if (seenUrls.has(tab.url)) {
                   tabsToRemove.add(tab.id)
+                  continue
+                }
+                seenUrls.set(tab.url, tab.id)
+
+                if (tab.groupId && tab.groupId !== chrome.tabs.TAB_ID_NONE) {
+                  if (!groupedToMove.has(tab.groupId)) groupedToMove.set(tab.groupId, [])
+                  groupedToMove.get(tab.groupId).push(tab.id)
                 } else {
-                  seenUrls.set(tab.url, tab.id)
-                  tabsToMove.push(tab.id)
+                  ungroupedToMove.push(tab.id)
                 }
               }
-              
-              // 移动不重复的标签页到当前窗口
-              if (tabsToMove.length > 0) {
-                await chrome.tabs.move(tabsToMove, {
-                  windowId: currentWindow.id,
-                  index: -1
-                })
+
+              const allToMove = [...ungroupedToMove, ...[...groupedToMove.values()].flat()]
+              if (allToMove.length > 0) {
+                await chrome.tabs.move(allToMove, { windowId: currentWindow.id, index: -1 })
+              }
+
+              // 在目标窗口重建分组
+              for (const [groupId, tabIds] of groupedToMove) {
+                if (!tabIds || tabIds.length === 0) continue
+                try {
+                  const newGroupId = await chrome.tabs.group({ tabIds })
+                  const meta = groupMetaById[groupId]
+                  if (meta) {
+                    await chrome.tabGroups.update(newGroupId, meta)
+                  }
+                } catch (_) {}
               }
             }
             
@@ -347,6 +378,104 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
   
+  // 快捷设置区域：防重复、保护当前链接、忽略查询参数
+  const quickSettings = document.createElement('div')
+  quickSettings.className = 'quick-settings'
+
+  const preventRow = document.createElement('label')
+  preventRow.className = 'qs-row'
+  const preventCheckbox = document.createElement('input')
+  preventCheckbox.type = 'checkbox'
+  const preventSpan = document.createElement('span')
+  preventSpan.textContent = 'Prevent duplicate tabs'
+  preventRow.appendChild(preventCheckbox)
+  preventRow.appendChild(preventSpan)
+
+  const protectRow = document.createElement('label')
+  protectRow.className = 'qs-row'
+  const protectCheckbox = document.createElement('input')
+  protectCheckbox.type = 'checkbox'
+  const protectSpan = document.createElement('span')
+  protectSpan.textContent = 'Protect this URL'
+  protectRow.appendChild(protectCheckbox)
+  protectRow.appendChild(protectSpan)
+
+  const ignoreQueryRow = document.createElement('label')
+  ignoreQueryRow.className = 'qs-row'
+  const ignoreQueryCheckbox = document.createElement('input')
+  ignoreQueryCheckbox.type = 'checkbox'
+  const ignoreQuerySpan = document.createElement('span')
+  ignoreQuerySpan.textContent = 'Ignore query when matching'
+  ignoreQueryRow.appendChild(ignoreQueryCheckbox)
+  ignoreQueryRow.appendChild(ignoreQuerySpan)
+
+  quickSettings.appendChild(preventRow)
+  quickSettings.appendChild(protectRow)
+  quickSettings.appendChild(ignoreQueryRow)
+
+  // 读取并初始化开关状态
+  const [{ preventDuplicates, siteSettings }, [activeTab]] = await Promise.all([
+    chrome.storage.sync.get(['preventDuplicates', 'siteSettings']),
+    chrome.tabs.query({ active: true, currentWindow: true })
+  ])
+
+  const getDomainKey = (urlStr) => {
+    try {
+      const u = new URL(urlStr)
+      return u.hostname + u.pathname
+    } catch {
+      return ''
+    }
+  }
+
+  const domainKey = activeTab?.url ? getDomainKey(activeTab.url) : ''
+  let sites = Array.isArray(siteSettings) ? [...siteSettings] : []
+  preventCheckbox.checked = !!preventDuplicates
+  const existingIdx = sites.findIndex(s => s.domain === domainKey)
+  const isProtected = existingIdx !== -1
+  protectCheckbox.checked = isProtected
+  ignoreQueryCheckbox.checked = isProtected ? !!sites[existingIdx].ignoreQuery : false
+  ignoreQueryCheckbox.disabled = !protectCheckbox.checked
+
+  preventCheckbox.addEventListener('change', async (e) => {
+    await chrome.storage.sync.set({ preventDuplicates: e.target.checked })
+  })
+
+  protectCheckbox.addEventListener('change', async (e) => {
+    if (!domainKey) return
+    // Lazily refresh sites
+    const res = await chrome.storage.sync.get('siteSettings')
+    sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
+    const idx = sites.findIndex(s => s.domain === domainKey)
+    if (e.target.checked) {
+      if (idx === -1) {
+        sites.push({ domain: domainKey, ignoreQuery: !!ignoreQueryCheckbox.checked })
+      }
+      ignoreQueryCheckbox.disabled = false
+    } else {
+      if (idx !== -1) {
+        sites.splice(idx, 1)
+      }
+      ignoreQueryCheckbox.disabled = true
+    }
+    await chrome.storage.sync.set({ siteSettings: sites })
+  })
+
+  ignoreQueryCheckbox.addEventListener('change', async (e) => {
+    if (!domainKey) return
+    const res = await chrome.storage.sync.get('siteSettings')
+    sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
+    let idx = sites.findIndex(s => s.domain === domainKey)
+    if (idx === -1) {
+      // Auto-protect if toggled
+      protectCheckbox.checked = true
+      sites.push({ domain: domainKey, ignoreQuery: !!e.target.checked })
+    } else {
+      sites[idx].ignoreQuery = !!e.target.checked
+    }
+    await chrome.storage.sync.set({ siteSettings: sites })
+  })
+
   // 修改按钮添加顺序
   buttonContainer.appendChild(mergeButton)
   buttonContainer.appendChild(sortButton)
@@ -366,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add elements to page
   mainElement.appendChild(h3Element)
   mainElement.appendChild(buttonContainer)
+  mainElement.appendChild(quickSettings)
   mainElement.appendChild(settingsButton)
   appElement.appendChild(mainElement)
   

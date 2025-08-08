@@ -1,86 +1,71 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const app = document.getElementById('app');
+document.addEventListener('DOMContentLoaded', async () => {
+  const app = document.getElementById('app')
   app.innerHTML = `
-    <h1>MergeX Settings</h1>
+    <h1>Settings Overview</h1>
+    <div class="setting-item" id="status"></div>
     <div class="setting-item">
-      <label>
-        <input type="checkbox" id="preventDuplicates">
-        Prevent Duplicate Tabs
-      </label>
-      <p>Automatically close new tabs that have the same URL as existing tabs.</p>
+      <h3>Protected Entries</h3>
+      <p style="margin-top:6px; color:#6b7280;">Below is the list of protected keys (hostname + pathname) and whether query parameters are ignored. To add or modify, please use the popup quick toggles.</p>
+      <div id="siteList" class="site-list"></div>
     </div>
-    <div class="setting-item">
-      <h3>Site-Specific Settings</h3>
-      <p>Add domains that should have special handling when checking for duplicates.</p>
-      <input type="text" id="newSite" placeholder="e.g. example.com/path">
-      <button id="addSite">Add Site</button>
-    </div>
-    <div id="siteList" class="site-list"></div>
-  `;
+  `
 
-  const preventDuplicatesCheckbox = document.getElementById('preventDuplicates');
-  const newSiteInput = document.getElementById('newSite');
-  const addSiteButton = document.getElementById('addSite');
-  const siteListDiv = document.getElementById('siteList');
+  const statusDiv = document.getElementById('status')
+  const siteListDiv = document.getElementById('siteList')
+  let sites = []
+
+  const renderStatus = ({ preventDuplicates }) => {
+    statusDiv.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:10px; height:10px; border-radius:50%; background:${preventDuplicates ? '#34a853' : '#ea4335'};"></div>
+        <div><strong>Prevent duplicate tabs:</strong> ${preventDuplicates ? 'Enabled' : 'Disabled'}</div>
+      </div>
+      <p style="margin:8px 0 0; color:#6b7280;">To change this, open the extension popup and use the quick toggles.</p>
+    `
+  }
 
   const renderSiteList = (sites) => {
-    siteListDiv.innerHTML = '';
+    siteListDiv.innerHTML = ''
+    if (!sites || sites.length === 0) {
+      const empty = document.createElement('div')
+      empty.style.color = '#6b7280'
+      empty.textContent = 'No entries yet'
+      siteListDiv.appendChild(empty)
+      return
+    }
+
     sites.forEach((site, index) => {
-      const siteItem = document.createElement('div');
-      siteItem.className = 'site-item';
+      const siteItem = document.createElement('div')
+      siteItem.className = 'site-item'
       siteItem.innerHTML = `
         <span>${site.domain}</span>
         <label>
-          <input type="checkbox" data-index="${index}" class="ignore-query" ${site.ignoreQuery ? 'checked' : ''}>
-          Ignore Query
+          <input type="checkbox" disabled ${site.ignoreQuery ? 'checked' : ''}>
+          Ignore query
         </label>
-        <button data-index="${index}" class="remove-site">Remove</button>
-      `;
-      siteListDiv.appendChild(siteItem);
-    });
-  };
+        <button class="remove-site" data-index="${index}">Remove</button>
+      `
+      siteListDiv.appendChild(siteItem)
+    })
+  }
 
-  chrome.storage.sync.get(['preventDuplicates', 'siteSettings'], (result) => {
-    preventDuplicatesCheckbox.checked = result.preventDuplicates;
-    renderSiteList(result.siteSettings || []);
-  });
+  const { preventDuplicates, siteSettings } = await chrome.storage.sync.get(['preventDuplicates', 'siteSettings'])
+  renderStatus({ preventDuplicates: !!preventDuplicates })
+  sites = Array.isArray(siteSettings) ? siteSettings : []
+  renderSiteList(sites)
 
-  preventDuplicatesCheckbox.addEventListener('change', (event) => {
-    chrome.storage.sync.set({ preventDuplicates: event.target.checked });
-  });
-
-  addSiteButton.addEventListener('click', () => {
-    const newSite = newSiteInput.value.trim();
-    if (newSite) {
-      chrome.storage.sync.get('siteSettings', (result) => {
-        const sites = result.siteSettings || [];
-        sites.push({ domain: newSite, ignoreQuery: false });
-        chrome.storage.sync.set({ siteSettings: sites }, () => {
-          renderSiteList(sites);
-          newSiteInput.value = '';
-        });
-      });
+  siteListDiv.addEventListener('click', async (e) => {
+    const target = e.target
+    if (target.classList.contains('remove-site')) {
+      const idx = parseInt(target.dataset.index, 10)
+      if (Number.isNaN(idx)) return
+      const res = await chrome.storage.sync.get('siteSettings')
+      const current = Array.isArray(res.siteSettings) ? res.siteSettings : []
+      if (idx < 0 || idx >= current.length) return
+      current.splice(idx, 1)
+      await chrome.storage.sync.set({ siteSettings: current })
+      sites = current
+      renderSiteList(sites)
     }
-  });
-
-  siteListDiv.addEventListener('click', (event) => {
-    if (event.target.classList.contains('remove-site')) {
-      const index = parseInt(event.target.dataset.index, 10);
-      chrome.storage.sync.get('siteSettings', (result) => {
-        const sites = result.siteSettings || [];
-        sites.splice(index, 1);
-        chrome.storage.sync.set({ siteSettings: sites }, () => {
-          renderSiteList(sites);
-        });
-      });
-    } else if (event.target.classList.contains('ignore-query')) {
-      const index = parseInt(event.target.dataset.index, 10);
-      const checked = event.target.checked;
-      chrome.storage.sync.get('siteSettings', (result) => {
-        const sites = result.siteSettings || [];
-        sites[index].ignoreQuery = checked;
-        chrome.storage.sync.set({ siteSettings: sites });
-      });
-    }
-  });
-});
+  })
+})

@@ -57,20 +57,20 @@ h3::after {
 
 .action-button {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background-color: #ffffff;
   color: #202124;
-  border: 1px solid #dadce0;
-  border-radius: var(--border-radius);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   text-align: left;
-  transition: all var(--transition-speed) ease;
+  transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
   display: flex;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   position: relative;
   overflow: hidden;
 }
@@ -78,15 +78,13 @@ h3::after {
 .action-button:hover {
   background-color: #f8f9fa;
   border-color: #dadce0;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.16);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .action-button:active {
   background-color: #f1f3f4;
   border-color: #dadce0;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12);
-  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .action-button::before {
@@ -142,6 +140,28 @@ h3::after {
   color: #202124;
 }
 
+/* Quick settings card */
+.quick-settings {
+  margin: 12px 0 0 0;
+  padding: 12px 14px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.qs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  color: #5f6368;
+  font-size: 13px;
+}
+
+.qs-row input[type="checkbox"] {
+  accent-color: var(--primary-color);
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #292a2d;
@@ -167,6 +187,12 @@ h3::after {
     background-color: #444746;
     border-color: #5f6368;
   }
+  .quick-settings {
+    background-color: #35363a;
+    border-color: #5f6368;
+  }
+  .qs-row { color: #9aa0a6; }
+  .qs-row input[type="checkbox"] { accent-color: #8ab4f8; }
   
   .action-button.settings {
     background-color: #35363a;

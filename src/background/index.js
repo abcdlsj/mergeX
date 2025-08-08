@@ -53,8 +53,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       urlToCompare = currentTabUrl.origin + currentTabUrl.pathname;
     }
 
-    // Get all open tabs
-    const allTabs = await chrome.tabs.query({});
+    // Only check tabs in the same window
+    const allTabs = await chrome.tabs.query({ windowId: tab.windowId });
     
     // Look for duplicate tabs
     for (const existingTab of allTabs) {
@@ -73,21 +73,23 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
         // If duplicate is found
         if (urlToCompare === existingTabUrlString) {
-          // Mark current tab as processed
+          // Mark current tab as processed to avoid re-entry
           recentlyProcessedTabs.add(tabId);
-          
-          // Activate the existing tab
-          await chrome.tabs.update(existingTab.id, { active: true });
-          await chrome.windows.update(existingTab.windowId, { focused: true });
-          
-          // Close the duplicate tab
-          await chrome.tabs.remove(tabId);
-          
+
+          // Keep the current tab and close the previous one in the same window
+          // Optionally ensure current tab/window are focused
+          try {
+            await chrome.tabs.update(tabId, { active: true });
+            await chrome.windows.update(tab.windowId, { focused: true });
+          } catch (_) {}
+
+          await chrome.tabs.remove(existingTab.id);
+
           // Remove from processed set after a delay
           setTimeout(() => {
             recentlyProcessedTabs.delete(tabId);
           }, 5000);
-          
+
           return;
         }
       } catch (error) {

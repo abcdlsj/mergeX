@@ -1,22 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Background Circle -->
-  <circle cx="256" cy="256" r="248" fill="#FF5722" stroke="#D84315" stroke-width="10" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="512" height="512">
+  <!-- Simple, clean icon: overlapping tabs + check -->
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bg)"/>
   
-  <!-- Tab Representation - Slightly enlarged -->
-  <g transform="translate(96, 126) scale(1.05)">
-    <!-- First Tab -->
-    <path d="M0,0 L60,0 Q75,0 75,15 L75,240 L0,240 Z" fill="#FFFFFF" opacity="1" stroke="#333333" stroke-width="3" />
-    
-    <!-- Second Tab -->
-    <path d="M85,30 L145,30 Q160,30 160,45 L160,240 L85,240 Z" fill="#FFFFFF" opacity="0.95" stroke="#333333" stroke-width="3" />
-    
-    <!-- Third Tab -->
-    <path d="M170,15 L230,15 Q245,15 245,30 L245,240 L170,240 Z" fill="#FFFFFF" opacity="0.97" stroke="#333333" stroke-width="3" />
-    
-    <!-- Fourth Tab (Active) -->
-    <path d="M255,45 L315,45 Q330,45 330,60 L330,240 L255,240 Z" fill="#FFFFFF" stroke="#333333" stroke-width="3" />
-  </g>
-  
-  <!-- "M" Letter for Master - Enlarged and with stroke -->
-  <path d="M256,175 L221,230 L186,175 L186,285 L221,285 L221,230 L256,285 L291,230 L291,285 L326,285 L326,175 L291,230 Z" fill="#FFFFFF" stroke="#333333" stroke-width="4" />
+  <!-- Back tab -->
+  <rect x="30" y="38" width="56" height="36" rx="6" fill="#FFFFFF" opacity="0.85"/>
+  <rect x="24" y="46" width="56" height="36" rx="6" fill="#FFFFFF"/>
+
+  <!-- Check mark -->
+  <path d="M50 67 l6 6 18-18" stroke="#16A34A" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
