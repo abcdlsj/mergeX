@@ -84,11 +84,28 @@ h1::after { content: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 12px 16px;
   margin-bottom: 8px;
   background-color: #ffffff;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
+}
+
+.site-info {
+  flex-grow: 1;
+  margin-right: 12px;
+}
+
+.site-domain {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.site-details {
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .site-item span {
@@ -146,4 +163,6 @@ h1::after { content: none; }
   .site-list { border-color: transparent; }
   
   .site-item { background-color: #111827; border-color: #1f2937; }
+  .site-domain { color: #f9fafb; }
+  .site-details { color: #9ca3af; }
 }

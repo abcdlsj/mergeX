@@ -37,12 +37,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     sites.forEach((site, index) => {
       const siteItem = document.createElement('div')
       siteItem.className = 'site-item'
+      
+      const matchTypeText = {
+        'domain': 'Domain-wide',
+        'prefix': 'Path prefix',
+        'exact': 'Exact path'
+      }[site.matchType || 'exact']
+      
+      const options = []
+      if (site.ignoreQuery) options.push('Ignore query')
+      if (site.ignoreHash) options.push('Ignore hash')
+      const optionsText = options.length > 0 ? ` (${options.join(', ')})` : ''
+      
       siteItem.innerHTML = `
-        <span>${site.domain}</span>
-        <label>
-          <input type="checkbox" disabled ${site.ignoreQuery ? 'checked' : ''}>
-          Ignore query
-        </label>
+        <div class="site-info">
+          <div class="site-domain">${site.domain}</div>
+          <div class="site-details">${matchTypeText}${optionsText}</div>
+        </div>
         <button class="remove-site" data-index="${index}">Remove</button>
       `
       siteListDiv.appendChild(siteItem)
