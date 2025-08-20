@@ -25,6 +25,93 @@ function buildComparisonUrl(url, siteSetting) {
   return result;
 }
 
+// Track recently processed tabs to avoid duplicate handling
+const recentlyProcessedTabs = new Set();
+
+// Check for duplicates function
+async function checkForDuplicates(tabId, url) {
+  if (!url || url === 'about:blank' || recentlyProcessedTabs.has(tabId)) {
+    return;
+  }
+
+  // Mark as processing immediately to prevent race conditions
+  recentlyProcessedTabs.add(tabId);
+
+  try {
+    // Get user settings
+    const { preventDuplicates, siteSettings } = await chrome.storage.sync.get(['preventDuplicates', 'siteSettings']);
+
+    // Exit if duplicate prevention is disabled
+    if (!preventDuplicates) {
+      recentlyProcessedTabs.delete(tabId);
+      return;
+    }
+
+    // Parse the current tab's URL
+    const currentTabUrl = new URL(url);
+    
+    // Find matching site-specific settings
+    const siteSetting = siteSettings.find(s => {
+      if (s.matchType === 'exact') {
+        return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
+      } else if (s.matchType === 'domain') {
+        return currentTabUrl.hostname === s.domain;
+      } else if (s.matchType === 'prefix') {
+        const [domain, ...pathParts] = s.domain.split('/');
+        const prefix = pathParts.join('/');
+        return currentTabUrl.hostname === domain && 
+               currentTabUrl.pathname.startsWith('/' + prefix);
+      }
+      return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
+    });
+
+    // Build URL for comparison
+    let urlToCompare = buildComparisonUrl(currentTabUrl, siteSetting);
+
+    // Get current tab info
+    const currentTab = await chrome.tabs.get(tabId);
+    
+    // Only check tabs in the same window
+    const allTabs = await chrome.tabs.query({ windowId: currentTab.windowId });
+    
+    // Look for duplicates
+    for (const existingTab of allTabs) {
+      if (existingTab.id === tabId || !existingTab.url || recentlyProcessedTabs.has(existingTab.id)) {
+        continue;
+      }
+
+      try {
+        const existingTabUrl = new URL(existingTab.url);
+        const existingTabUrlString = buildComparisonUrl(existingTabUrl, siteSetting);
+
+        if (urlToCompare === existingTabUrlString) {
+          // Focus existing tab and close new one
+          try {
+            await chrome.tabs.update(existingTab.id, { active: true });
+            await chrome.windows.update(currentTab.windowId, { focused: true });
+          } catch (_) {}
+
+          await chrome.tabs.remove(tabId);
+          return;
+        }
+      } catch (error) {
+        console.error('Error processing tab:', error);
+      }
+    }
+
+    // Clean up after delay if no duplicate found
+    setTimeout(() => {
+      recentlyProcessedTabs.delete(tabId);
+    }, 3000);
+    
+  } catch (error) {
+    console.error('Error checking for duplicates:', error);
+    setTimeout(() => {
+      recentlyProcessedTabs.delete(tabId);
+    }, 1000);
+  }
+}
+
 // Initialize settings on installation
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.get(['preventDuplicates', 'siteSettings'], (result) => {
@@ -37,113 +124,14 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Track recently processed tabs to avoid duplicate handling
-const recentlyProcessedTabs = new Set();
-
-// Listen for tab update events
+// Listen for tab update events  
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only process when URL changes and page is fully loaded
-  if (changeInfo.status !== 'complete' || !tab.url || tab.url === 'about:blank') {
-    return;
-  }
-
-  // Avoid processing the same tab multiple times
-  if (recentlyProcessedTabs.has(tabId)) {
-    return;
-  }
-
-  // Mark as processing immediately to prevent race conditions
-  recentlyProcessedTabs.add(tabId);
-
-  // Get user settings
-  const { preventDuplicates, siteSettings } = await chrome.storage.sync.get(['preventDuplicates', 'siteSettings']);
-
-  // Exit if duplicate prevention is disabled
-  if (!preventDuplicates) {
-    recentlyProcessedTabs.delete(tabId);
-    return;
-  }
-
-  try {
-    // Parse the current tab's URL
-    const currentTabUrl = new URL(tab.url);
-    
-    // Find matching site-specific settings with flexible matching
-    const siteSetting = siteSettings.find(s => {
-      if (s.matchType === 'exact') {
-        // Exact path matching (old behavior)
-        return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
-      } else if (s.matchType === 'domain') {
-        // Domain-wide matching
-        return currentTabUrl.hostname === s.domain;
-      } else if (s.matchType === 'prefix') {
-        // Path prefix matching
-        const [domain, ...pathParts] = s.domain.split('/');
-        const prefix = pathParts.join('/');
-        return currentTabUrl.hostname === domain && 
-               currentTabUrl.pathname.startsWith('/' + prefix);
-      }
-      // Fallback to exact matching for backward compatibility
-      return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
-    });
-
-    // Build URL for comparison based on settings
-    let urlToCompare = buildComparisonUrl(currentTabUrl, siteSetting);
-
-    // Only check tabs in the same window
-    const allTabs = await chrome.tabs.query({ windowId: tab.windowId });
-    
-    // Look for duplicate tabs, prioritizing older tabs to keep
-    let duplicateFound = false;
-    for (const existingTab of allTabs) {
-      // Skip the current tab itself or tabs without URLs
-      if (existingTab.id === tabId || !existingTab.url) {
-        continue;
-      }
-
-      // Skip tabs that are also being processed to avoid mutual deletion
-      if (recentlyProcessedTabs.has(existingTab.id)) {
-        continue;
-      }
-
-      try {
-        // Process existing tab's URL with same settings
-        const existingTabUrl = new URL(existingTab.url);
-        const existingTabUrlString = buildComparisonUrl(existingTabUrl, siteSetting);
-
-        // If duplicate is found
-        if (urlToCompare === existingTabUrlString) {
-          duplicateFound = true;
-          
-          // Determine which tab to keep based on creation time or activity
-          // Keep the existing tab (older) and close the new one
-          try {
-            // Focus the existing tab instead of the new one
-            await chrome.tabs.update(existingTab.id, { active: true });
-            await chrome.windows.update(tab.windowId, { focused: true });
-          } catch (_) {}
-
-          // Close the newer tab (current tab)
-          await chrome.tabs.remove(tabId);
-          break;
-        }
-      } catch (error) {
-        console.error('Error processing tab:', error);
-      }
-    }
-
-    // If no duplicate found, keep the tab and remove from processed set after delay
-    if (!duplicateFound) {
-      setTimeout(() => {
-        recentlyProcessedTabs.delete(tabId);
-      }, 3000);
-    }
-    
-  } catch (error) {
-    console.error('Error checking for duplicate tabs:', error);
-    // Clean up on error
-    setTimeout(() => {
-      recentlyProcessedTabs.delete(tabId);
-    }, 1000);
+  // Check on URL change (immediate), loading (paste scenarios), or complete (fallback)
+  if (changeInfo.url) {
+    await checkForDuplicates(tabId, changeInfo.url);
+  } else if (changeInfo.status === 'loading' && tab.url) {
+    await checkForDuplicates(tabId, tab.url);
+  } else if (changeInfo.status === 'complete' && tab.url) {
+    await checkForDuplicates(tabId, tab.url);
   }
 });
