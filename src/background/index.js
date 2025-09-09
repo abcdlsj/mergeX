@@ -7,18 +7,18 @@
 function buildComparisonUrl(url, siteSetting) {
   let result = url.origin + url.pathname;
   
+  // Default behavior: ignore query params and hash (smart deduplication)
   if (!siteSetting) {
-    // Default behavior: include everything
-    return url.href;
+    return result;
   }
   
-  // Add query parameters if not ignored
-  if (!siteSetting.ignoreQuery) {
+  // Add query parameters if included in site setting
+  if (siteSetting.includeQuery) {
     result += url.search;
   }
   
-  // Add hash if not ignored
-  if (!siteSetting.ignoreHash) {
+  // Add hash if included in site setting
+  if (siteSetting.includeHash) {
     result += url.hash;
   }
   
@@ -64,6 +64,12 @@ async function checkForDuplicates(tabId, url) {
       }
       return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
     });
+
+    // Check if deduplication is disabled for this site
+    if (siteSetting && siteSetting.disabled) {
+      recentlyProcessedTabs.delete(tabId);
+      return;
+    }
 
     // Build URL for comparison
     let urlToCompare = buildComparisonUrl(currentTabUrl, siteSetting);

@@ -45,13 +45,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }[site.matchType || 'exact']
       
       const options = []
-      if (site.ignoreQuery) options.push('Ignore query')
-      if (site.ignoreHash) options.push('Ignore hash')
+      const status = site.disabled ? ' [DISABLED]' : ''
+      if (site.includeQuery) options.push('Include query')
+      if (site.includeHash) options.push('Include hash')
       const optionsText = options.length > 0 ? ` (${options.join(', ')})` : ''
       
       siteItem.innerHTML = `
         <div class="site-info">
-          <div class="site-domain">${site.domain}</div>
+          <div class="site-domain">${site.domain}${status}</div>
           <div class="site-details">${matchTypeText}${optionsText}</div>
         </div>
         <button class="remove-site" data-index="${index}">Remove</button>

@@ -378,90 +378,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   })
   
-  // 快捷设置区域：防重复、保护当前链接、匹配选项
+  // 层级设置区域：全局 + 站点 + 子配置
   const quickSettings = document.createElement('div')
   quickSettings.className = 'quick-settings'
 
-  const preventRow = document.createElement('label')
-  preventRow.className = 'qs-row'
-  const preventCheckbox = document.createElement('input')
-  preventCheckbox.type = 'checkbox'
-  const preventSpan = document.createElement('span')
-  preventSpan.textContent = 'Prevent duplicate tabs'
-  preventRow.appendChild(preventCheckbox)
-  preventRow.appendChild(preventSpan)
+  // 创建 toggle 的通用函数 - 全新结构
+  const createToggle = (id, labelText, className = 'toggle-row') => {
+    const row = document.createElement('div')
+    row.className = `qs-row ${className}`
+    
+    // 左侧内容区域
+    const leftContent = document.createElement('div')
+    leftContent.className = 'toggle-left'
+    
+    // 图标
+    const icon = document.createElement('div')
+    icon.className = 'toggle-icon'
+    
+    // 文字标签
+    const label = document.createElement('div')
+    label.className = 'toggle-label'
+    label.textContent = labelText
+    
+    leftContent.appendChild(icon)
+    leftContent.appendChild(label)
+    
+    // 右侧开关区域
+    const toggleContainer = document.createElement('div')
+    toggleContainer.className = 'toggle-container'
+    
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.id = id
+    checkbox.className = 'toggle-input'
+    
+    const slider = document.createElement('label')
+    slider.setAttribute('for', id)
+    slider.className = 'toggle-slider'
+    
+    toggleContainer.appendChild(checkbox)
+    toggleContainer.appendChild(slider)
+    
+    row.appendChild(leftContent)
+    row.appendChild(toggleContainer)
+    
+    return { row, checkbox }
+  }
 
-  const protectRow = document.createElement('label')
-  protectRow.className = 'qs-row'
-  const protectCheckbox = document.createElement('input')
-  protectCheckbox.type = 'checkbox'
-  const protectSpan = document.createElement('span')
-  protectSpan.textContent = 'Protect this URL'
-  protectRow.appendChild(protectCheckbox)
-  protectRow.appendChild(protectSpan)
+  // 1. 全局开关
+  const { row: preventRow, checkbox: preventCheckbox } = createToggle('preventToggle', 'Prevent duplicate', 'toggle-row primary')
 
-  // Match type selection
-  const matchTypeRow = document.createElement('div')
-  matchTypeRow.className = 'qs-row match-type-row'
-  const matchTypeLabel = document.createElement('span')
-  matchTypeLabel.textContent = 'Match scope:'
-  matchTypeLabel.className = 'match-type-label'
-  
-  const matchTypeSelect = document.createElement('select')
-  matchTypeSelect.className = 'match-type-select'
-  matchTypeSelect.innerHTML = `
-    <option value="exact">Exact path</option>
-    <option value="domain">Entire domain</option>
-    <option value="prefix">Path prefix</option>
-  `
-  
-  matchTypeRow.appendChild(matchTypeLabel)
-  matchTypeRow.appendChild(matchTypeSelect)
-
-  // Ignore options
-  const ignoreQueryRow = document.createElement('label')
-  ignoreQueryRow.className = 'qs-row'
-  const ignoreQueryCheckbox = document.createElement('input')
-  ignoreQueryCheckbox.type = 'checkbox'
-  const ignoreQuerySpan = document.createElement('span')
-  ignoreQuerySpan.textContent = 'Ignore query parameters'
-  ignoreQueryRow.appendChild(ignoreQueryCheckbox)
-  ignoreQueryRow.appendChild(ignoreQuerySpan)
-
-  const ignoreHashRow = document.createElement('label')
-  ignoreHashRow.className = 'qs-row'
-  const ignoreHashCheckbox = document.createElement('input')
-  ignoreHashCheckbox.type = 'checkbox'
-  const ignoreHashSpan = document.createElement('span')
-  ignoreHashSpan.textContent = 'Ignore hash fragments'
-  ignoreHashRow.appendChild(ignoreHashCheckbox)
-  ignoreHashRow.appendChild(ignoreHashSpan)
+  // 2. 子配置开关 (直接二级)
+  const { row: queryRow, checkbox: queryCheckbox } = createToggle('queryToggle', 'query parameters', 'toggle-row secondary')
+  const { row: hashRow, checkbox: hashCheckbox } = createToggle('hashToggle', 'hash fragments', 'toggle-row secondary')
 
   quickSettings.appendChild(preventRow)
-  quickSettings.appendChild(protectRow)
-  quickSettings.appendChild(matchTypeRow)
-  quickSettings.appendChild(ignoreQueryRow)
-  quickSettings.appendChild(ignoreHashRow)
+  quickSettings.appendChild(queryRow)
+  quickSettings.appendChild(hashRow)
 
-  // 读取并初始化开关状态
+  // 读取并初始化开关状态  
   const [{ preventDuplicates, siteSettings }, [activeTab]] = await Promise.all([
     chrome.storage.sync.get(['preventDuplicates', 'siteSettings']),
     chrome.tabs.query({ active: true, currentWindow: true })
   ])
 
-  const getDomainKey = (urlStr, matchType = 'exact') => {
+  const getDomainKey = (urlStr) => {
     try {
       const u = new URL(urlStr)
-      switch (matchType) {
-        case 'domain':
-          return u.hostname
-        case 'prefix':
-          // For prefix, we'll still store the full path initially
-          return u.hostname + u.pathname
-        case 'exact':
-        default:
-          return u.hostname + u.pathname
-      }
+      return u.hostname + u.pathname
     } catch {
       return ''
     }
@@ -469,43 +453,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const domainKey = activeTab?.url ? getDomainKey(activeTab.url) : ''
   let sites = Array.isArray(siteSettings) ? [...siteSettings] : []
-  preventCheckbox.checked = !!preventDuplicates
   
+  // 查找当前站点配置
   const existingIdx = sites.findIndex(s => s.domain === domainKey)
-  const isProtected = existingIdx !== -1
-  const existingSite = isProtected ? sites[existingIdx] : {}
+  const existingSite = existingIdx !== -1 ? sites[existingIdx] : {}
   
-  protectCheckbox.checked = isProtected
-  matchTypeSelect.value = existingSite.matchType || 'exact'
-  ignoreQueryCheckbox.checked = !!existingSite.ignoreQuery
-  ignoreHashCheckbox.checked = !!existingSite.ignoreHash
+  // 初始化开关状态
+  preventCheckbox.checked = !!preventDuplicates
+  queryCheckbox.checked = !!existingSite.includeQuery
+  hashCheckbox.checked = !!existingSite.includeHash
   
-  // Enable/disable controls based on protection status
-  const controlsEnabled = protectCheckbox.checked
-  matchTypeSelect.disabled = !controlsEnabled
-  ignoreQueryCheckbox.disabled = !controlsEnabled
-  ignoreHashCheckbox.disabled = !controlsEnabled
-
+  // 控制层级状态
+  const updateControlStates = () => {
+    const globalEnabled = preventCheckbox.checked
+    
+    // 禁用下级开关
+    queryCheckbox.disabled = !globalEnabled
+    hashCheckbox.disabled = !globalEnabled
+    
+    // 添加视觉禁用效果
+    queryRow.classList.toggle('disabled', !globalEnabled)
+    hashRow.classList.toggle('disabled', !globalEnabled)
+  }
+  
+  // 更新站点设置
   const updateSiteSettings = async () => {
     if (!domainKey) return
+    
     const res = await chrome.storage.sync.get('siteSettings')
     sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
-    
     const idx = sites.findIndex(s => s.domain === domainKey)
-    const siteConfig = {
-      domain: domainKey,
-      matchType: matchTypeSelect.value,
-      ignoreQuery: ignoreQueryCheckbox.checked,
-      ignoreHash: ignoreHashCheckbox.checked
-    }
     
-    if (protectCheckbox.checked) {
+    // 只要有任何特殊设置就创建配置条目
+    if (queryCheckbox.checked || hashCheckbox.checked) {
+      const siteConfig = {
+        domain: domainKey,
+        disabled: false,
+        includeQuery: queryCheckbox.checked,
+        includeHash: hashCheckbox.checked
+      }
+      
       if (idx === -1) {
         sites.push(siteConfig)
       } else {
         sites[idx] = { ...sites[idx], ...siteConfig }
       }
     } else {
+      // 两个都关闭了，删除站点配置（使用默认行为）
       if (idx !== -1) {
         sites.splice(idx, 1)
       }
@@ -513,32 +507,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await chrome.storage.sync.set({ siteSettings: sites })
   }
+  
+  // 初始化控制状态
+  updateControlStates()
 
+  // 事件监听器
   preventCheckbox.addEventListener('change', async (e) => {
     await chrome.storage.sync.set({ preventDuplicates: e.target.checked })
+    updateControlStates()
   })
 
-  protectCheckbox.addEventListener('change', async (e) => {
-    const controlsEnabled = e.target.checked
-    matchTypeSelect.disabled = !controlsEnabled
-    ignoreQueryCheckbox.disabled = !controlsEnabled
-    ignoreHashCheckbox.disabled = !controlsEnabled
-    
-    await updateSiteSettings()
-  })
+  queryCheckbox.addEventListener('change', updateSiteSettings)
+  hashCheckbox.addEventListener('change', updateSiteSettings)
 
-  matchTypeSelect.addEventListener('change', updateSiteSettings)
-  ignoreQueryCheckbox.addEventListener('change', updateSiteSettings)
-  ignoreHashCheckbox.addEventListener('change', updateSiteSettings)
-
-  // 修改按钮添加顺序
-  buttonContainer.appendChild(mergeButton)
-  buttonContainer.appendChild(sortButton)
-  buttonContainer.appendChild(groupByTimeButton)
-  buttonContainer.appendChild(groupByDomainButton)
-  buttonContainer.appendChild(ungroupButton)
-
-  // Create settings button
+  // 创建 Settings 按钮，使用统一样式但添加合适的图标
   const settingsButton = document.createElement('button')
   settingsButton.textContent = 'Settings'
   settingsButton.className = 'action-button settings'
@@ -547,11 +529,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.openOptionsPage()
   })
   
-  // Add elements to page
+  // 统一的功能列表 - 所有功能放在一个容器
+  buttonContainer.appendChild(mergeButton)
+  buttonContainer.appendChild(sortButton)
+  buttonContainer.appendChild(groupByTimeButton)
+  buttonContainer.appendChild(groupByDomainButton)
+  buttonContainer.appendChild(ungroupButton)
+  
+  // 添加 toggle 选项到同一个列表
+  buttonContainer.appendChild(preventRow)
+  buttonContainer.appendChild(queryRow)
+  buttonContainer.appendChild(hashRow)
+  
+  // Settings 也加到同一个列表最后
+  buttonContainer.appendChild(settingsButton)
+  
+  // Add elements to page - 一个完整的功能列表
   mainElement.appendChild(h3Element)
   mainElement.appendChild(buttonContainer)
-  mainElement.appendChild(quickSettings)
-  mainElement.appendChild(settingsButton)
   appElement.appendChild(mainElement)
   
   // Show success message when popup opens
