@@ -1,0 +1,56 @@
+/* 统一的设计系统变量 - 消除重复定义 */
+:root {
+  /* 颜色系统 */
+  --primary: #4285f4;
+  --success: #34a853;
+  --warning: #fbbc05;
+  --danger: #ea4335;
+  --neutral: #5f6368;
+  
+  /* 语义化颜色 */
+  --bg: #ffffff;
+  --bg-secondary: #f9fafb;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --border: #e5e7eb;
+  
+  /* 组件参数 */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+  --duration: 0.2s;
+  
+  /* 间距系统 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+}
+
+/* 深色模式 - 只重定义颜色变量 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #292a2d;
+    --bg-secondary: #35363a;
+    --text: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --border: #5f6368;
+    --primary: #8ab4f8;
+  }
+}
+
+/* 基础重置 */
+* {
+  box-sizing: border-box;
+}
+
+/* 字体定义 */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  color: var(--text);
+  background-color: var(--bg);
+}

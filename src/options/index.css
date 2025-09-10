@@ -1,168 +1,120 @@
-:root {
-  --primary-color: #4285f4;
-  --success-color: #34a853;
-  --warning-color: #fbbc05;
-  --danger-color: #ea4335;
-  --neutral-color: #5f6368;
-  --border-radius: 8px;
-  --transition-speed: 0.2s;
-}
+@import '../shared/variables.css';
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   padding: 32px 24px;
   max-width: 720px;
   margin: 0 auto;
-  color: #1f2937;
-  background-color: #fafafa;
   line-height: 1.6;
 }
 
-h1 {
-  color: #111827;
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0 0 20px 0;
+/* Header样式 */
+.header {
+  margin-bottom: var(--space-xl);
 }
 
-h1::after { content: none; }
+h1 {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
 
-.setting-item {
-  margin-bottom: 16px;
-  padding: 16px 18px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+h3 {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 var(--space-md) 0;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: var(--space-xs) 0 0 0;
+  line-height: 1.4;
+}
+
+/* 卡片统一样式 */
+.card {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg) 18px;
+  background-color: var(--bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
   box-shadow: 0 1px 1px rgba(0,0,0,0.03);
 }
 
-.setting-item label {
+/* 状态显示 */
+.status-row {
   display: flex;
   align-items: center;
+  gap: var(--space-md);
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-text {
   font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
 }
 
-.setting-item input[type="checkbox"] {
-  margin-right: 12px;
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary-color);
+/* 空状态 */
+.empty-state {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-xl);
+  font-style: italic;
 }
 
-.setting-item input[type="text"] {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #dadce0;
-  border-radius: var(--border-radius);
-  font-size: 14px;
-  margin-bottom: 12px;
-  box-sizing: border-box;
+/* 站点列表 */
+.site-list { 
+  margin-top: var(--space-md); 
 }
-
-.setting-item button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color var(--transition-speed) ease;
-}
-
-.setting-item button:hover {
-  background-color: #3367d6;
-}
-
-.site-list { margin-top: 12px; }
 
 .site-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  background-color: #ffffff;
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  background-color: var(--bg);
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
 }
 
 .site-info {
   flex-grow: 1;
-  margin-right: 12px;
+  margin-right: var(--space-md);
 }
 
 .site-domain {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
+  color: var(--text);
   margin-bottom: 2px;
 }
 
 .site-details {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
-.site-item span {
-  flex-grow: 1;
-  margin-right: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #111827;
-}
-
-.site-item label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.site-item .ignore-query {
-  margin-right: 8px;
-}
-
-.site-item .remove-site {
-  background-color: var(--danger-color);
+/* 统一按钮样式 */
+.btn-remove {
+  background-color: var(--danger);
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 4px 8px;
-  line-height: 1;
+  padding: var(--space-xs) var(--space-sm);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color var(--transition-speed) ease;
+  transition: background-color var(--duration) ease;
 }
 
-.site-item .remove-site:hover {
+.btn-remove:hover {
   background-color: #d93025;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #111827;
-    color: #e5e7eb;
-  }
-  
-  h1 { color: #f9fafb; }
-  
-  .setting-item { background-color: #0f172a; border-color: #1f2937; }
-  
-  .setting-item input[type="text"] {
-    background-color: #202124;
-    color: #e8eaed;
-    border-color: #5f6368;
-  }
-  
-  .site-list { border-color: transparent; }
-  
-  .site-item { background-color: #111827; border-color: #1f2937; }
-  .site-domain { color: #f9fafb; }
-  .site-details { color: #9ca3af; }
 }

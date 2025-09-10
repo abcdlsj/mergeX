@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const app = document.getElementById('app')
   app.innerHTML = `
-    <h1>Settings Overview</h1>
-    <div class="setting-item" id="status"></div>
-    <div class="setting-item">
-      <h3>Protected Entries</h3>
-      <p style="margin-top:6px; color:#6b7280;">Below is the list of protected keys (hostname + pathname) and whether query parameters are ignored. To add or modify, please use the popup quick toggles.</p>
+    <div class="header">
+      <h1>MergeX Settings</h1>
+    </div>
+    <div class="card" id="status"></div>
+    <div class="card">
+      <h3>Protected Sites</h3>
+      <p class="description">Sites with custom URL comparison rules. Use popup toggles to add or modify.</p>
       <div id="siteList" class="site-list"></div>
     </div>
   `
@@ -15,12 +17,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   let sites = []
 
   const renderStatus = ({ preventDuplicates }) => {
+    const statusColor = preventDuplicates ? 'var(--success)' : 'var(--danger)'
+    const statusText = preventDuplicates ? 'Enabled' : 'Disabled' 
+    
     statusDiv.innerHTML = `
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:10px; height:10px; border-radius:50%; background:${preventDuplicates ? '#34a853' : '#ea4335'};"></div>
-        <div><strong>Prevent duplicate tabs:</strong> ${preventDuplicates ? 'Enabled' : 'Disabled'}</div>
+      <div class="status-row">
+        <div class="status-indicator" style="background-color: ${statusColor}"></div>
+        <div class="status-text">
+          <strong>Duplicate Prevention:</strong> ${statusText}
+        </div>
       </div>
-      <p style="margin:8px 0 0; color:#6b7280;">To change this, open the extension popup and use the quick toggles.</p>
+      <p class="description">Change this setting in the popup extension.</p>
     `
   }
 
@@ -28,8 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     siteListDiv.innerHTML = ''
     if (!sites || sites.length === 0) {
       const empty = document.createElement('div')
-      empty.style.color = '#6b7280'
-      empty.textContent = 'No entries yet'
+      empty.className = 'empty-state'
+      empty.textContent = 'No custom rules yet'
       siteListDiv.appendChild(empty)
       return
     }
@@ -40,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       const matchTypeText = {
         'domain': 'Domain-wide',
-        'prefix': 'Path prefix',
+        'prefix': 'Path prefix', 
         'exact': 'Exact path'
       }[site.matchType || 'exact']
       
@@ -55,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="site-domain">${site.domain}${status}</div>
           <div class="site-details">${matchTypeText}${optionsText}</div>
         </div>
-        <button class="remove-site" data-index="${index}">Remove</button>
+        <button class="btn-remove" data-index="${index}">Remove</button>
       `
       siteListDiv.appendChild(siteItem)
     })
@@ -68,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   siteListDiv.addEventListener('click', async (e) => {
     const target = e.target
-    if (target.classList.contains('remove-site')) {
+    if (target.classList.contains('btn-remove')) {
       const idx = parseInt(target.dataset.index, 10)
       if (Number.isNaN(idx)) return
       const res = await chrome.storage.sync.get('siteSettings')

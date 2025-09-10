@@ -6,9 +6,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Create main element
   const mainElement = document.createElement('main')
   
+  // Create header with title and settings button
+  const headerElement = document.createElement('div')
+  headerElement.className = 'header'
+  
   // Create title
   const h3Element = document.createElement('h3')
   h3Element.textContent = 'Tab Management'
+  
+  // Settings button in header
+  const settingsButton = document.createElement('button')
+  settingsButton.className = 'btn settings'
+  settingsButton.title = 'Open extension settings'
+  settingsButton.innerHTML = '⚙️'
+  settingsButton.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage()
+  })
+  
+  headerElement.appendChild(h3Element)
+  headerElement.appendChild(settingsButton)
   
   // Create button container
   const buttonContainer = document.createElement('div')
@@ -16,31 +32,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Merge button
   const mergeButton = document.createElement('button')
-  mergeButton.textContent = 'Merge Tabs'
-  mergeButton.className = 'action-button merge'
-  mergeButton.title = 'Merge tabs from all windows and remove duplicates'
+  mergeButton.textContent = 'Merge Windows'
+  mergeButton.className = 'btn merge'
+  mergeButton.title = 'Merge all windows into one, remove duplicates'
   
   // Sort button
   const sortButton = document.createElement('button')
-  sortButton.textContent = 'Sort by Domain'
-  sortButton.className = 'action-button sort'
-  sortButton.title = 'Sort tabs by domain name'
+  sortButton.textContent = 'Sort Tabs'
+  sortButton.className = 'btn sort'
+  sortButton.title = 'Sort tabs alphabetically by domain'
   
   // Group buttons
   const groupByTimeButton = document.createElement('button')
-  groupByTimeButton.textContent = 'Group by Time'
-  groupByTimeButton.className = 'action-button clean'
-  groupByTimeButton.title = 'Group tabs by last access time'
+  groupByTimeButton.textContent = 'Group Old'
+  groupByTimeButton.className = 'btn clean'
+  groupByTimeButton.title = 'Group old tabs (1+ days ago)'
   
   const groupByDomainButton = document.createElement('button')
-  groupByDomainButton.textContent = 'Group by Domain'
-  groupByDomainButton.className = 'action-button clean'
-  groupByDomainButton.title = 'Group tabs by domain name'
+  groupByDomainButton.textContent = 'Group Sites'
+  groupByDomainButton.className = 'btn clean'
+  groupByDomainButton.title = 'Group tabs from same website'
   
   // Ungroup button
   const ungroupButton = document.createElement('button')
-  ungroupButton.textContent = 'Ungroup All'
-  ungroupButton.className = 'action-button ungroup'
+  ungroupButton.textContent = 'Ungroup'
+  ungroupButton.className = 'btn ungroup'
   ungroupButton.title = 'Remove all tab groups'
   
   // 排序功能
@@ -378,63 +394,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   })
   
-  // 层级设置区域：全局 + 站点 + 子配置
+  // 简单的设置区域
   const quickSettings = document.createElement('div')
   quickSettings.className = 'quick-settings'
 
-  // 创建 toggle 的通用函数 - 全新结构
-  const createToggle = (id, labelText, className = 'toggle-row') => {
+  // 创建设置项的统一函数
+  const createSetting = (id, labelText) => {
     const row = document.createElement('div')
-    row.className = `qs-row ${className}`
+    row.className = 'settings-row'
     
-    // 左侧内容区域
-    const leftContent = document.createElement('div')
-    leftContent.className = 'toggle-left'
-    
-    // 图标
-    const icon = document.createElement('div')
-    icon.className = 'toggle-icon'
-    
-    // 文字标签
     const label = document.createElement('div')
-    label.className = 'toggle-label'
+    label.className = 'setting-label'
     label.textContent = labelText
     
-    leftContent.appendChild(icon)
-    leftContent.appendChild(label)
-    
-    // 右侧开关区域
-    const toggleContainer = document.createElement('div')
-    toggleContainer.className = 'toggle-container'
+    const switchContainer = document.createElement('div')
+    switchContainer.className = 'switch'
     
     const checkbox = document.createElement('input')
     checkbox.type = 'checkbox'
+    checkbox.className = 'checkbox'
     checkbox.id = id
-    checkbox.className = 'toggle-input'
     
-    const slider = document.createElement('label')
-    slider.setAttribute('for', id)
-    slider.className = 'toggle-slider'
+    const slider = document.createElement('div')
+    slider.className = 'slider'
     
-    toggleContainer.appendChild(checkbox)
-    toggleContainer.appendChild(slider)
-    
-    row.appendChild(leftContent)
-    row.appendChild(toggleContainer)
+    switchContainer.appendChild(checkbox)
+    switchContainer.appendChild(slider)
+    row.appendChild(label)
+    row.appendChild(switchContainer)
     
     return { row, checkbox }
   }
 
-  // 1. 全局开关
-  const { row: preventRow, checkbox: preventCheckbox } = createToggle('preventToggle', 'Prevent duplicate', 'toggle-row primary')
-
-  // 2. 子配置开关 (直接二级)
-  const { row: queryRow, checkbox: queryCheckbox } = createToggle('queryToggle', 'query parameters', 'toggle-row secondary')
-  const { row: hashRow, checkbox: hashCheckbox } = createToggle('hashToggle', 'hash fragments', 'toggle-row secondary')
-
+  // 创建全局设置
+  const { row: preventRow, checkbox: preventCheckbox } = createSetting('prevent', 'Block duplicates')
   quickSettings.appendChild(preventRow)
-  quickSettings.appendChild(queryRow)
-  quickSettings.appendChild(hashRow)
+
+  // 创建站点配置分组
+  const siteConfigGroup = document.createElement('div')
+  siteConfigGroup.className = 'site-config-group'
+  
+  const siteConfigTitle = document.createElement('div')
+  siteConfigTitle.className = 'site-config-title'
+  siteConfigTitle.textContent = 'Current Site Configuration'
+  siteConfigGroup.appendChild(siteConfigTitle)
+  
+  // 创建站点配置选项
+  const { row: queryRow, checkbox: queryCheckbox } = createSetting('query', 'Compare URLs')  
+  const { row: hashRow, checkbox: hashCheckbox } = createSetting('hash', 'Compare fragments')
+  
+  siteConfigGroup.appendChild(queryRow)
+  siteConfigGroup.appendChild(hashRow)
+  
+  quickSettings.appendChild(siteConfigGroup)
 
   // 读取并初始化开关状态  
   const [{ preventDuplicates, siteSettings }, [activeTab]] = await Promise.all([
@@ -463,17 +475,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   queryCheckbox.checked = !!existingSite.includeQuery
   hashCheckbox.checked = !!existingSite.includeHash
   
-  // 控制层级状态
+  // 简单的控制状态
   const updateControlStates = () => {
     const globalEnabled = preventCheckbox.checked
-    
-    // 禁用下级开关
     queryCheckbox.disabled = !globalEnabled
     hashCheckbox.disabled = !globalEnabled
-    
-    // 添加视觉禁用效果
-    queryRow.classList.toggle('disabled', !globalEnabled)
-    hashRow.classList.toggle('disabled', !globalEnabled)
   }
   
   // 更新站点设置
@@ -484,11 +490,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
     const idx = sites.findIndex(s => s.domain === domainKey)
     
-    // 只要有任何特殊设置就创建配置条目
     if (queryCheckbox.checked || hashCheckbox.checked) {
       const siteConfig = {
         domain: domainKey,
-        disabled: false,
         includeQuery: queryCheckbox.checked,
         includeHash: hashCheckbox.checked
       }
@@ -499,7 +503,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         sites[idx] = { ...sites[idx], ...siteConfig }
       }
     } else {
-      // 两个都关闭了，删除站点配置（使用默认行为）
       if (idx !== -1) {
         sites.splice(idx, 1)
       }
@@ -520,33 +523,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   queryCheckbox.addEventListener('change', updateSiteSettings)
   hashCheckbox.addEventListener('change', updateSiteSettings)
 
-  // 创建 Settings 按钮，使用统一样式但添加合适的图标
-  const settingsButton = document.createElement('button')
-  settingsButton.textContent = 'Settings'
-  settingsButton.className = 'action-button settings'
-  settingsButton.title = 'Open extension settings'
-  settingsButton.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage()
-  })
-  
-  // 统一的功能列表 - 所有功能放在一个容器
+  // === 功能按钮区域 ===
   buttonContainer.appendChild(mergeButton)
   buttonContainer.appendChild(sortButton)
   buttonContainer.appendChild(groupByTimeButton)
   buttonContainer.appendChild(groupByDomainButton)
   buttonContainer.appendChild(ungroupButton)
   
-  // 添加 toggle 选项到同一个列表
-  buttonContainer.appendChild(preventRow)
-  buttonContainer.appendChild(queryRow)
-  buttonContainer.appendChild(hashRow)
+  // === 全局设置区域 ===
+  const globalSettings = document.createElement('div')
+  globalSettings.className = 'settings-section'
   
-  // Settings 也加到同一个列表最后
-  buttonContainer.appendChild(settingsButton)
+  const globalTitle = document.createElement('div')
+  globalTitle.className = 'settings-title'
+  globalTitle.textContent = 'Global Settings'
   
-  // Add elements to page - 一个完整的功能列表
-  mainElement.appendChild(h3Element)
+  globalSettings.appendChild(globalTitle)
+  globalSettings.appendChild(preventRow)
+  
+  // === 当前站点设置区域 ===  
+  const siteSettingsContainer = document.createElement('div')
+  siteSettingsContainer.className = 'settings-section site-settings'
+  
+  const siteTitle = document.createElement('div')
+  siteTitle.className = 'settings-title'
+  const currentDomain = activeTab?.url ? getDomainKey(activeTab.url) : 'Current Site'
+  siteTitle.textContent = `Site: ${currentDomain.split('/')[0]}`
+  
+  siteSettingsContainer.appendChild(siteTitle)
+  siteSettingsContainer.appendChild(queryRow)
+  siteSettingsContainer.appendChild(hashRow)
+  
+  // === 页面结构 ===
+  mainElement.appendChild(headerElement)
   mainElement.appendChild(buttonContainer)
+  mainElement.appendChild(globalSettings)
+  mainElement.appendChild(siteSettingsContainer)
   appElement.appendChild(mainElement)
   
   // Show success message when popup opens

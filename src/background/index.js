@@ -51,7 +51,7 @@ async function checkForDuplicates(tabId, url) {
     const currentTabUrl = new URL(url);
     
     // Find matching site-specific settings
-    const siteSetting = siteSettings.find(s => {
+    const siteSetting = Array.isArray(siteSettings) ? siteSettings.find(s => {
       if (s.matchType === 'exact') {
         return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
       } else if (s.matchType === 'domain') {
@@ -62,8 +62,9 @@ async function checkForDuplicates(tabId, url) {
         return currentTabUrl.hostname === domain && 
                currentTabUrl.pathname.startsWith('/' + prefix);
       }
+      // Default: exact match on hostname + pathname
       return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
-    });
+    }) : undefined;
 
     // Check if deduplication is disabled for this site
     if (siteSetting && siteSetting.disabled) {
