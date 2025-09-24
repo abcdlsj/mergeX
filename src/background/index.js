@@ -5,20 +5,23 @@
 
 // Build URL for comparison based on site settings
 function buildComparisonUrl(url, siteSetting) {
+  // Always include origin and pathname (same page detection)
   let result = url.origin + url.pathname;
   
-  // Default behavior: ignore query params and hash (smart deduplication)
+  // Default behavior: compare everything (don't ignore)
   if (!siteSetting) {
+    // No site setting = compare full URL
+    result += url.search + url.hash;
     return result;
   }
   
-  // Add query parameters if included in site setting
-  if (siteSetting.includeQuery) {
+  // Only add query if NOT ignored
+  if (!siteSetting.ignoreQuery) {
     result += url.search;
   }
   
-  // Add hash if included in site setting
-  if (siteSetting.includeHash) {
+  // Only add hash if NOT ignored  
+  if (!siteSetting.ignoreHash) {
     result += url.hash;
   }
   
@@ -50,30 +53,66 @@ async function checkForDuplicates(tabId, url) {
     // Parse the current tab's URL
     const currentTabUrl = new URL(url);
     
-    // Find matching site-specific settings
-    const siteSetting = Array.isArray(siteSettings) ? siteSettings.find(s => {
-      if (s.matchType === 'exact') {
-        return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
-      } else if (s.matchType === 'domain') {
-        return currentTabUrl.hostname === s.domain;
-      } else if (s.matchType === 'prefix') {
-        const [domain, ...pathParts] = s.domain.split('/');
-        const prefix = pathParts.join('/');
-        return currentTabUrl.hostname === domain && 
-               currentTabUrl.pathname.startsWith('/' + prefix);
-      }
-      // Default: exact match on hostname + pathname
-      return currentTabUrl.hostname + currentTabUrl.pathname === s.domain;
-    }) : undefined;
+    // Find matching site-specific settings (supports exact, base-domain and wildcard patterns)
+    function domainMatches(hostname, pattern) {
+      if (!hostname || !pattern) return false;
+      const hn = hostname.toLowerCase();
+      const p = pattern.toLowerCase();
 
-    // Check if deduplication is disabled for this site
-    if (siteSetting && siteSetting.disabled) {
-      recentlyProcessedTabs.delete(tabId);
-      return;
+      // Exact match
+      if (hn === p) return true;
+
+      // Wildcard pattern: *.example.com matches example.com and any subdomain
+      if (p.startsWith('*.')) {
+        const base = p.slice(2);
+        return hn === base || hn.endsWith('.' + base);
+      }
+
+      // Base domain pattern: example.com matches sub.example.com
+      return hn.endsWith('.' + p);
+    }
+
+    let siteSetting = undefined;
+    if (Array.isArray(siteSettings) && siteSettings.length > 0) {
+      const hostname = currentTabUrl.hostname;
+      const candidates = siteSettings.filter((s) => domainMatches(hostname, s.domain));
+      // Prefer the most specific (longest) domain rule if multiple match
+      siteSetting = candidates.sort((a, b) => (b.domain?.length || 0) - (a.domain?.length || 0))[0];
+    }
+
+    // Check if deduplication is disabled for this site (support time-based snooze)
+    if (siteSetting) {
+      const now = Date.now();
+      const disabledUntil = typeof siteSetting.disabledUntil === 'number' ? siteSetting.disabledUntil : 0;
+      const isSnoozed = disabledUntil > now;
+      const isDisabled = !!siteSetting.disabled || isSnoozed;
+      if (isDisabled) {
+        recentlyProcessedTabs.delete(tabId);
+        return;
+      }
+      // Optional: clear expired snooze to keep storage clean
+      if (disabledUntil && disabledUntil <= now) {
+        try {
+          const { siteSettings: latest } = await chrome.storage.sync.get('siteSettings');
+          const arr = Array.isArray(latest) ? latest : [];
+          const idx = arr.findIndex((s) => s.domain === siteSetting.domain);
+          if (idx !== -1) {
+            delete arr[idx].disabledUntil;
+            await chrome.storage.sync.set({ siteSettings: arr });
+          }
+        } catch (_) {}
+      }
     }
 
     // Build URL for comparison
     let urlToCompare = buildComparisonUrl(currentTabUrl, siteSetting);
+    
+    console.log('[MergeX Debug] Checking tab:', {
+      url: url,
+      hostname: currentTabUrl.hostname,
+      siteSetting: siteSetting,
+      urlToCompare: urlToCompare
+    });
 
     // Get current tab info
     const currentTab = await chrome.tabs.get(tabId);
@@ -92,6 +131,13 @@ async function checkForDuplicates(tabId, url) {
         const existingTabUrlString = buildComparisonUrl(existingTabUrl, siteSetting);
 
         if (urlToCompare === existingTabUrlString) {
+          console.log('[MergeX Debug] Found duplicate:', {
+            current: urlToCompare,
+            existing: existingTabUrlString,
+            existingTabId: existingTab.id,
+            willClose: tabId
+          });
+          
           // Focus existing tab and close new one
           try {
             await chrome.tabs.update(existingTab.id, { active: true });
@@ -99,6 +145,8 @@ async function checkForDuplicates(tabId, url) {
           } catch (_) {}
 
           await chrome.tabs.remove(tabId);
+          // Clean up processing state for the closed tab
+          recentlyProcessedTabs.delete(tabId);
           return;
         }
       } catch (error) {
@@ -120,12 +168,15 @@ async function checkForDuplicates(tabId, url) {
 }
 
 // Initialize settings on installation
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.sync.get(['preventDuplicates', 'siteSettings'], (result) => {
+    // Always ensure the global flag has a sane default
     if (result.preventDuplicates === undefined) {
       chrome.storage.sync.set({ preventDuplicates: true });
     }
-    if (result.siteSettings === undefined) {
+
+    // Only reset site settings on first install to avoid wiping user config on update
+    if (details?.reason === 'install') {
       chrome.storage.sync.set({ siteSettings: [] });
     }
   });

@@ -1,6 +1,7 @@
 import './index.css'
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Default layout (non-compact, non-macOS-elegant)
   const appElement = document.getElementById('app')
   
   // Create main element
@@ -439,9 +440,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   siteConfigTitle.textContent = 'Current Site Configuration'
   siteConfigGroup.appendChild(siteConfigTitle)
   
+  // 当前匹配规则与临时禁用
+  const matchedRuleInfo = document.createElement('div')
+  matchedRuleInfo.style.fontSize = '12px'
+  matchedRuleInfo.style.color = 'var(--text-secondary)'
+  matchedRuleInfo.style.margin = '4px 0 8px 0'
+  siteConfigGroup.appendChild(matchedRuleInfo)
+  
+  const snoozeRow = document.createElement('div')
+  snoozeRow.className = 'settings-row'
+  const snoozeLabel = document.createElement('div')
+  snoozeLabel.className = 'setting-label'
+  snoozeLabel.textContent = 'Temporarily disable (1h)'
+  const snoozeBtn = document.createElement('button')
+  snoozeBtn.className = 'mini-btn'
+  snoozeBtn.textContent = 'Snooze 1h'
+  snoozeBtn.style.padding = '6px 10px'
+  snoozeBtn.style.fontSize = '12px'
+  const cancelSnoozeBtn = document.createElement('button')
+  cancelSnoozeBtn.className = 'mini-btn'
+  cancelSnoozeBtn.textContent = 'Cancel Snooze'
+  cancelSnoozeBtn.style.padding = '6px 10px'
+  cancelSnoozeBtn.style.fontSize = '12px'
+  cancelSnoozeBtn.style.display = 'none'
+  const snoozeRight = document.createElement('div')
+  snoozeRight.appendChild(snoozeBtn)
+  snoozeRight.appendChild(cancelSnoozeBtn)
+  snoozeRow.appendChild(snoozeLabel)
+  snoozeRow.appendChild(snoozeRight)
+  
   // 创建站点配置选项
-  const { row: queryRow, checkbox: queryCheckbox } = createSetting('query', 'Compare URLs')  
-  const { row: hashRow, checkbox: hashCheckbox } = createSetting('hash', 'Compare fragments')
+  const { row: queryRow, checkbox: queryCheckbox } = createSetting('query', 'Ignore query params')  
+  const { row: hashRow, checkbox: hashCheckbox } = createSetting('hash', 'Ignore #fragments')
   
   siteConfigGroup.appendChild(queryRow)
   siteConfigGroup.appendChild(hashRow)
@@ -457,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const getDomainKey = (urlStr) => {
     try {
       const u = new URL(urlStr)
-      return u.hostname + u.pathname
+      return u.hostname
     } catch {
       return ''
     }
@@ -466,14 +496,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   const domainKey = activeTab?.url ? getDomainKey(activeTab.url) : ''
   let sites = Array.isArray(siteSettings) ? [...siteSettings] : []
   
-  // 查找当前站点配置
-  const existingIdx = sites.findIndex(s => s.domain === domainKey)
-  const existingSite = existingIdx !== -1 ? sites[existingIdx] : {}
+  // 匹配规则（与后台一致）
+  const domainMatches = (hostname, pattern) => {
+    if (!hostname || !pattern) return false
+    const hn = hostname.toLowerCase()
+    const p = pattern.toLowerCase()
+    if (hn === p) return true
+    if (p.startsWith('*.')) {
+      const base = p.slice(2)
+      return hn === base || hn.endsWith('.' + base)
+    }
+    return hn.endsWith('.' + p)
+  }
+  
+  const getMatchedSite = () => {
+    if (!domainKey) return { idx: -1, site: undefined }
+    const candidates = sites.filter(s => domainMatches(domainKey, s.domain))
+    if (candidates.length === 0) return { idx: -1, site: undefined }
+    // 最具体（域名更长）优先
+    const best = candidates.sort((a, b) => (b.domain?.length || 0) - (a.domain?.length || 0))[0]
+    const idx = sites.findIndex(s => s.domain === best.domain)
+    return { idx, site: sites[idx] }
+  }
+  
+  // 查找当前站点配置（可能不存在）
+  let { idx: matchedIdx, site: matchedSite } = getMatchedSite()
+  matchedSite = matchedSite || {}
   
   // 初始化开关状态
   preventCheckbox.checked = !!preventDuplicates
-  queryCheckbox.checked = !!existingSite.includeQuery
-  hashCheckbox.checked = !!existingSite.includeHash
+  // 默认不忽略（关闭），开启后忽略
+  queryCheckbox.checked = !!matchedSite.ignoreQuery
+  hashCheckbox.checked = !!matchedSite.ignoreHash
+  
+  const refreshMatchedInfo = () => {
+    const { site } = getMatchedSite()
+    const s = site || {}
+    const now = Date.now()
+    const snoozed = typeof s.disabledUntil === 'number' && s.disabledUntil > now
+    const untilText = snoozed ? ` (until ${new Date(s.disabledUntil).toLocaleTimeString()})` : ''
+    const ruleText = site ? `Rule: ${s.domain}${s.disabled ? ' [DISABLED]' : ''}${snoozed ? ' [SNOOZED]' : ''}${untilText}` : 'Rule: <none>'
+    matchedRuleInfo.textContent = ruleText
+    snoozeBtn.style.display = domainKey ? '' : 'none'
+    cancelSnoozeBtn.style.display = snoozed ? '' : 'none'
+  }
   
   // 简单的控制状态
   const updateControlStates = () => {
@@ -488,13 +554,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const res = await chrome.storage.sync.get('siteSettings')
     sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
-    const idx = sites.findIndex(s => s.domain === domainKey)
+    const { idx } = getMatchedSite()
     
+    // 只有当有自定义设置时才保存（开启了任一忽略选项）
     if (queryCheckbox.checked || hashCheckbox.checked) {
       const siteConfig = {
-        domain: domainKey,
-        includeQuery: queryCheckbox.checked,
-        includeHash: hashCheckbox.checked
+        domain: (idx !== -1 ? sites[idx].domain : domainKey),
+        ignoreQuery: queryCheckbox.checked,
+        ignoreHash: hashCheckbox.checked
       }
       
       if (idx === -1) {
@@ -509,10 +576,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     await chrome.storage.sync.set({ siteSettings: sites })
+    refreshMatchedInfo()
   }
   
   // 初始化控制状态
   updateControlStates()
+  refreshMatchedInfo()
 
   // 事件监听器
   preventCheckbox.addEventListener('change', async (e) => {
@@ -522,6 +591,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   queryCheckbox.addEventListener('change', updateSiteSettings)
   hashCheckbox.addEventListener('change', updateSiteSettings)
+
+  snoozeBtn.addEventListener('click', async () => {
+    if (!domainKey) return
+    const res = await chrome.storage.sync.get('siteSettings')
+    sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
+    const { idx } = getMatchedSite()
+    const disabledUntil = Date.now() + 60 * 60 * 1000
+    if (idx === -1) {
+      sites.push({ domain: domainKey, disabledUntil })
+    } else {
+      sites[idx] = { ...sites[idx], disabledUntil }
+    }
+    await chrome.storage.sync.set({ siteSettings: sites })
+    refreshMatchedInfo()
+  })
+
+  cancelSnoozeBtn.addEventListener('click', async () => {
+    if (!domainKey) return
+    const res = await chrome.storage.sync.get('siteSettings')
+    sites = Array.isArray(res.siteSettings) ? res.siteSettings : []
+    const { idx } = getMatchedSite()
+    if (idx !== -1) {
+      delete sites[idx].disabledUntil
+      await chrome.storage.sync.set({ siteSettings: sites })
+      refreshMatchedInfo()
+    }
+  })
 
   // === 功能按钮区域 ===
   buttonContainer.appendChild(mergeButton)
@@ -548,9 +644,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const siteTitle = document.createElement('div')
   siteTitle.className = 'settings-title'
   const currentDomain = activeTab?.url ? getDomainKey(activeTab.url) : 'Current Site'
-  siteTitle.textContent = `Site: ${currentDomain.split('/')[0]}`
+  siteTitle.textContent = `Site: ${currentDomain}`
   
   siteSettingsContainer.appendChild(siteTitle)
+  siteSettingsContainer.appendChild(snoozeRow)
   siteSettingsContainer.appendChild(queryRow)
   siteSettingsContainer.appendChild(hashRow)
   

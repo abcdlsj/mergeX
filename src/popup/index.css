@@ -44,6 +44,15 @@ body {
   display: none;
 }
 
+.btn.settings:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.btn.settings:active {
+  transform: translateY(1px);
+}
+
 /* 主要按钮样式 */
 .button-container {
   display: flex;
@@ -66,11 +75,21 @@ body {
   transition: all var(--duration) ease;
   display: flex;
   align-items: center;
+  min-height: 40px;
 }
 
 .btn:hover {
   background-color: var(--bg-secondary);
   border-color: var(--text-secondary);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .btn::before {
@@ -80,7 +99,7 @@ body {
   margin-right: var(--space-md);
   border-radius: 50%;
   flex-shrink: 0;
-  background: center/14px no-repeat;
+  background: center/14px 14px no-repeat;
 }
 
 .btn.merge::before {
@@ -189,4 +208,25 @@ body {
 .switch:has(input:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.switch:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px var(--primary) inset;
+}
+
+/* Mini buttons inside rows */
+.mini-btn {
+  background-color: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.mini-btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-secondary);
 }
