@@ -1,275 +1,155 @@
 @import '../shared/variables.css';
 
 body {
-  padding: var(--space-8) var(--space-5);
-  max-width: 640px;
+  padding: 32px 24px;
+  max-width: 720px;
   margin: 0 auto;
   line-height: 1.6;
-  background-color: var(--bg);
 }
 
-/* Header - 极简 */
+/* Header样式 */
 .header {
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-xl);
 }
 
 h1 {
   color: var(--text);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   margin: 0;
-  letter-spacing: -0.5px;
 }
 
 h3 {
   color: var(--text);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  margin: 0 0 var(--space-4) 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin: 0 0 var(--space-md) 0;
 }
 
 .description {
   color: var(--text-secondary);
   font-size: 14px;
-  margin: var(--space-2) 0 0 0;
-  line-height: 1.5;
+  margin: var(--space-xs) 0 0 0;
+  line-height: 1.4;
 }
 
-/* 卡片 - 极简无边框 */
+/* 卡片统一样式 */
 .card {
-  margin-bottom: var(--space-6);
-  padding: var(--space-5) 0;
-  background-color: transparent;
-  border-top: 1px solid var(--border);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg) 18px;
+  background-color: var(--bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03);
 }
 
-.card:first-of-type {
-  border-top: none;
-  padding-top: 0;
-}
-
-/* 状态显示 - 极简 */
+/* 状态显示 */
 .status-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius);
+  gap: var(--space-md);
 }
 
 .status-indicator {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .status-text {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text);
+  font-size: 16px;
 }
 
 /* 空状态 */
 .empty-state {
-  color: var(--text-tertiary);
-  text-align: center;
-  padding: var(--space-6);
-  font-size: 13px;
-  font-style: normal;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-}
-
-/* 添加表单 - 极简 */
-.add-form {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin: var(--space-4) 0;
-  padding: var(--space-4);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius);
-  flex-wrap: wrap;
-}
-
-.add-form input#domainInput {
-  flex: 1;
-  min-width: 180px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  transition: border-color var(--duration) ease;
-}
-
-.add-form input#domainInput:focus {
-  border-color: var(--accent);
-}
-
-.add-form input#domainInput::placeholder {
-  color: var(--text-tertiary);
-}
-
-.add-form .form-check {
-  font-size: 12px;
   color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  cursor: pointer;
-  white-space: nowrap;
+  text-align: center;
+  padding: var(--space-xl);
+  font-style: italic;
 }
 
-.add-form .form-check input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.add-form button#addBtn {
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--text);
-  color: var(--bg);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: opacity var(--duration) ease;
-}
-
-.add-form button#addBtn:hover {
-  opacity: 0.8;
-}
-
-/* 站点列表 - 极简线条风格 */
-.site-list {
-  margin-top: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border-light);
+/* 站点列表 */
+.site-list { 
+  margin-top: var(--space-md); 
 }
 
 .site-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) 0;
-  background-color: transparent;
-  border-bottom: 1px solid var(--border-light);
-  transition: background-color var(--duration) ease;
-}
-
-.site-item:hover {
-  background-color: var(--bg-secondary);
-  margin: 0 calc(-1 * var(--space-4));
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  background-color: var(--bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
 }
 
 .site-info {
   flex-grow: 1;
-  margin-right: var(--space-4);
+  margin-right: var(--space-md);
 }
 
 .site-domain {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text);
   margin-bottom: 2px;
-  font-family: var(--font-mono);
 }
 
 .site-details {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
 }
 
-.site-details .form-check {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
-.site-details .form-check input[type="checkbox"] {
-  width: 12px;
-  height: 12px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* 删除按钮 - 极简 */
+/* 统一按钮样式 */
 .btn-remove {
-  background-color: transparent;
-  color: var(--text-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
-  font-size: 11px;
-  font-weight: 400;
+  background-color: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration) ease;
-  text-transform: lowercase;
+  transition: background-color var(--duration) ease;
 }
 
 .btn-remove:hover {
-  border-color: var(--danger);
-  color: var(--danger);
+  background-color: #d93025;
 }
 
-/* 清除 Snooze 按钮 */
-.site-details .btn-remove {
-  padding: 2px 8px;
-  font-size: 10px;
-  margin-left: var(--space-2);
+/* Add form */
+.add-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
 }
 
-/* 响应式 */
-@media (max-width: 600px) {
-  body {
-    padding: var(--space-5);
-  }
+.add-form input#domainInput {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text);
+}
 
-  .add-form {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.add-form .form-check {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
 
-  .add-form input#domainInput {
-    min-width: auto;
-  }
+.add-form button#addBtn {
+  padding: 8px 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-  .site-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .site-item:hover {
-    margin: 0;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .btn-remove {
-    align-self: flex-end;
-  }
+.site-details .form-check {
+  margin-right: 12px;
 }

@@ -1,97 +1,83 @@
-/* 极简风格设计系统变量 */
+/* 统一的设计系统变量 - 消除重复定义 */
 :root {
-  /* 纯黑白灰配色 */
+  /* 颜色系统 */
+  --primary: #4285f4;
+  --success: #34a853;
+  --warning: #fbbc05;
+  --danger: #ea4335;
+  --neutral: #5f6368;
+  
+  /* 语义化颜色 */
   --bg: #ffffff;
-  --bg-secondary: #fafafa;
-  --bg-tertiary: #f5f5f5;
+  --bg-secondary: #f9fafb;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --border: #e5e7eb;
+  
+  /* 组件参数 */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+  --duration: 0.2s;
+  
+  /* 间距系统 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
 
-  /* 文字颜色 */
-  --text: #111111;
-  --text-secondary: #666666;
-  --text-tertiary: #999999;
+  /* Font stacks */
+  --font-ui: -apple-system, system-ui, BlinkMacSystemFont,
+    "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial,
+    "PingFang SC", "PingFang TC", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans CJK SC", "Noto Sans CJK TC", sans-serif;
+  --font-display: "SF Pro Display", -apple-system, system-ui, BlinkMacSystemFont,
+    "SF Pro Text", "Helvetica Neue", Helvetica, Arial,
+    "PingFang SC", "PingFang TC", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans CJK SC", "Noto Sans CJK TC", sans-serif;
+  --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* 线条颜色 */
-  --border: #e5e5e5;
-  --border-light: #f0f0f0;
-  --border-dark: #d0d0d0;
-
-  /* 强调色 - 单一蓝色 */
-  --accent: #0066ff;
-  --accent-hover: #0052cc;
-  --success: #00c853;
-  --warning: #ff9100;
-  --danger: #ff1744;
-
-  /* 尺寸系统 - 4px 基准 */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-8: 48px;
-
-  /* 圆角 - 极简小圆角 */
-  --radius: 4px;
-  --radius-sm: 2px;
-  --radius-lg: 6px;
-
-  /* 过渡 */
-  --duration: 0.15s;
-
-  /* 字体 */
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
+  /* System-like accents and separators */
+  --accent: #0a84ff; /* macOS system blue */
+  --separator: rgba(60, 60, 67, 0.18);
 }
 
-/* 深色模式 */
+/* 深色模式 - 只重定义颜色变量 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0a0a0a;
-    --bg-secondary: #141414;
-    --bg-tertiary: #1a1a1a;
-    --text: #ffffff;
-    --text-secondary: #888888;
-    --text-tertiary: #555555;
-    --border: #222222;
-    --border-light: #1a1a1a;
-    --border-dark: #333333;
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
+    --bg: #292a2d;
+    --bg-secondary: #35363a;
+    --text: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --border: #5f6368;
+    --primary: #8ab4f8;
   }
 }
 
 /* 基础重置 */
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
+/* 字体定义 */
 body {
-  font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.5;
+  /* macOS-first system font stack with CJK fallbacks */
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
   color: var(--text);
   background-color: var(--bg);
-  -webkit-font-smoothing: antialiased;
 }
 
-/* 极简滚动条 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Display/headings use SF Pro Display when available */
+h1, h2, h3, .settings-title {
+  font-family: var(--font-display);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-dark);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+/* Monospace for code-like content */
+code, pre, kbd, samp, .mono {
+  font-family: var(--font-mono);
 }
