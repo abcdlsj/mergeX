@@ -27,11 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   let sites = []
 
   const renderStatus = ({ preventDuplicates }) => {
-    const statusColor = preventDuplicates ? 'var(--success)' : 'var(--danger)'
+    const statusClass = preventDuplicates ? 'status-indicator active' : 'status-indicator'
     const statusText = preventDuplicates ? 'Enabled' : 'Disabled'
     statusDiv.innerHTML = `
       <div class="status-row">
-        <div class="status-indicator" style="background-color: ${statusColor}"></div>
+        <div class="${statusClass}"></div>
         <div class="status-text">
           <strong>Duplicate Prevention:</strong> ${statusText}
         </div>
