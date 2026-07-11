@@ -1,17 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="512" height="512">
-  <!-- Simple, clean icon: overlapping tabs + check -->
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#4F46E5"/>
-      <stop offset="100%" stop-color="#22C55E"/>
-    </linearGradient>
-  </defs>
-  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bg)"/>
-  
-  <!-- Back tab -->
-  <rect x="30" y="38" width="56" height="36" rx="6" fill="#FFFFFF" opacity="0.85"/>
-  <rect x="24" y="46" width="56" height="36" rx="6" fill="#FFFFFF"/>
-
-  <!-- Check mark -->
-  <path d="M50 67 l6 6 18-18" stroke="#16A34A" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="25" fill="#1D5CFF"/>
+  <path d="M31 34h16c10 0 17 8 17 18v40" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M97 34H81c-10 0-17 8-17 18" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <path d="m48 78 16 16 16-16" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

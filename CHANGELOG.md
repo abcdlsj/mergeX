@@ -9,6 +9,13 @@ Summary
   5. version timestamp follow the yyyy.MM.dd format
 ```
 
+## 1.1.4 [2026.07.11]
+
+- feat: enable automatic duplicate-tab protection with per-site rules
+- feat: add one-click query and anchor rules for the current site
+- update: redesign popup, preferences, and extension icon
+- fix: preserve pinned tabs and tab groups when merging windows
+
 ## 0.0.0 [2024.12.27]
 
 - feat: initial

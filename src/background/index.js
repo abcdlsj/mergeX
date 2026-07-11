@@ -1,195 +1,137 @@
 /**
- * MergeX - Background Service Worker
- * Handles duplicate tab prevention and management
+ * MergeX background worker.
+ * Duplicate protection is deliberately always-on. The only exceptions are
+ * explicit site rules created by the user.
  */
 
-// Build URL for comparison based on site settings
-function buildComparisonUrl(url, siteSetting) {
-  // Always include origin and pathname (same page detection)
-  let result = url.origin + url.pathname;
-  
-  // Default behavior: compare everything (don't ignore)
-  if (!siteSetting) {
-    // No site setting = compare full URL
-    result += url.search + url.hash;
-    return result;
+const processingTabs = new Set()
+const processingKeys = new Set()
+
+const domainMatches = (hostname, pattern) => {
+  if (!hostname || !pattern) return false
+  const host = hostname.toLowerCase()
+  const rule = pattern.toLowerCase()
+  if (host === rule) return true
+  if (rule.startsWith('*.')) {
+    const base = rule.slice(2)
+    return host === base || host.endsWith(`.${base}`)
   }
-  
-  // Only add query if NOT ignored
-  if (!siteSetting.ignoreQuery) {
-    result += url.search;
-  }
-  
-  // Only add hash if NOT ignored  
-  if (!siteSetting.ignoreHash) {
-    result += url.hash;
-  }
-  
-  return result;
+  return host.endsWith(`.${rule}`)
 }
 
-// Track recently processed tabs to avoid duplicate handling
-const recentlyProcessedTabs = new Set();
+const findSiteRule = (url, siteSettings) => {
+  if (!Array.isArray(siteSettings)) return undefined
+  return siteSettings
+    .filter((rule) => domainMatches(url.hostname, rule.domain))
+    .sort((a, b) => (b.domain?.length || 0) - (a.domain?.length || 0))[0]
+}
 
-// Check for duplicates function
-async function checkForDuplicates(tabId, url) {
-  if (!url || url === 'about:blank' || recentlyProcessedTabs.has(tabId)) {
-    return;
-  }
+const comparisonKey = (url, rule) => {
+  let key = `${url.origin}${url.pathname}`
+  if (!rule?.ignoreQuery) key += url.search
+  if (!rule?.ignoreHash) key += url.hash
+  return key
+}
 
-  // Mark as processing immediately to prevent race conditions
-  recentlyProcessedTabs.add(tabId);
-
+const isSupportedUrl = (value) => {
+  if (!value || value === 'about:blank') return false
   try {
-    // Get user settings
-    const { preventDuplicates, siteSettings } = await chrome.storage.sync.get(['preventDuplicates', 'siteSettings']);
-
-    // Exit if duplicate prevention is disabled
-    if (!preventDuplicates) {
-      recentlyProcessedTabs.delete(tabId);
-      return;
-    }
-
-    // Parse the current tab's URL
-    const currentTabUrl = new URL(url);
-    
-    // Find matching site-specific settings (supports exact, base-domain and wildcard patterns)
-    function domainMatches(hostname, pattern) {
-      if (!hostname || !pattern) return false;
-      const hn = hostname.toLowerCase();
-      const p = pattern.toLowerCase();
-
-      // Exact match
-      if (hn === p) return true;
-
-      // Wildcard pattern: *.example.com matches example.com and any subdomain
-      if (p.startsWith('*.')) {
-        const base = p.slice(2);
-        return hn === base || hn.endsWith('.' + base);
-      }
-
-      // Base domain pattern: example.com matches sub.example.com
-      return hn.endsWith('.' + p);
-    }
-
-    let siteSetting = undefined;
-    if (Array.isArray(siteSettings) && siteSettings.length > 0) {
-      const hostname = currentTabUrl.hostname;
-      const candidates = siteSettings.filter((s) => domainMatches(hostname, s.domain));
-      // Prefer the most specific (longest) domain rule if multiple match
-      siteSetting = candidates.sort((a, b) => (b.domain?.length || 0) - (a.domain?.length || 0))[0];
-    }
-
-    // Check if deduplication is disabled for this site (support time-based snooze)
-    if (siteSetting) {
-      const now = Date.now();
-      const disabledUntil = typeof siteSetting.disabledUntil === 'number' ? siteSetting.disabledUntil : 0;
-      const isSnoozed = disabledUntil > now;
-      const isDisabled = !!siteSetting.disabled || isSnoozed;
-      if (isDisabled) {
-        recentlyProcessedTabs.delete(tabId);
-        return;
-      }
-      // Optional: clear expired snooze to keep storage clean
-      if (disabledUntil && disabledUntil <= now) {
-        try {
-          const { siteSettings: latest } = await chrome.storage.sync.get('siteSettings');
-          const arr = Array.isArray(latest) ? latest : [];
-          const idx = arr.findIndex((s) => s.domain === siteSetting.domain);
-          if (idx !== -1) {
-            delete arr[idx].disabledUntil;
-            await chrome.storage.sync.set({ siteSettings: arr });
-          }
-        } catch (_) {}
-      }
-    }
-
-    // Build URL for comparison
-    let urlToCompare = buildComparisonUrl(currentTabUrl, siteSetting);
-    
-    console.log('[MergeX Debug] Checking tab:', {
-      url: url,
-      hostname: currentTabUrl.hostname,
-      siteSetting: siteSetting,
-      urlToCompare: urlToCompare
-    });
-
-    // Get current tab info
-    const currentTab = await chrome.tabs.get(tabId);
-    
-    // Only check tabs in the same window
-    const allTabs = await chrome.tabs.query({ windowId: currentTab.windowId });
-    
-    // Look for duplicates
-    for (const existingTab of allTabs) {
-      if (existingTab.id === tabId || !existingTab.url || recentlyProcessedTabs.has(existingTab.id)) {
-        continue;
-      }
-
-      try {
-        const existingTabUrl = new URL(existingTab.url);
-        const existingTabUrlString = buildComparisonUrl(existingTabUrl, siteSetting);
-
-        if (urlToCompare === existingTabUrlString) {
-          console.log('[MergeX Debug] Found duplicate:', {
-            current: urlToCompare,
-            existing: existingTabUrlString,
-            existingTabId: existingTab.id,
-            willClose: tabId
-          });
-          
-          // Focus existing tab and close new one
-          try {
-            await chrome.tabs.update(existingTab.id, { active: true });
-            await chrome.windows.update(currentTab.windowId, { focused: true });
-          } catch (_) {}
-
-          await chrome.tabs.remove(tabId);
-          // Clean up processing state for the closed tab
-          recentlyProcessedTabs.delete(tabId);
-          return;
-        }
-      } catch (error) {
-        console.error('Error processing tab:', error);
-      }
-    }
-
-    // Clean up after delay if no duplicate found
-    setTimeout(() => {
-      recentlyProcessedTabs.delete(tabId);
-    }, 3000);
-    
-  } catch (error) {
-    console.error('Error checking for duplicates:', error);
-    setTimeout(() => {
-      recentlyProcessedTabs.delete(tabId);
-    }, 1000);
+    const url = new URL(value)
+    return ['http:', 'https:', 'file:', 'ftp:'].includes(url.protocol)
+  } catch {
+    return false
   }
 }
 
-// Initialize settings on installation
-chrome.runtime.onInstalled.addListener((details) => {
-  chrome.storage.sync.get(['preventDuplicates', 'siteSettings'], (result) => {
-    // Always ensure the global flag has a sane default
-    if (result.preventDuplicates === undefined) {
-      chrome.storage.sync.set({ preventDuplicates: true });
-    }
+const recordRedirect = async () => {
+  const { duplicateStats = {} } = await chrome.storage.local.get('duplicateStats')
+  await chrome.storage.local.set({
+    duplicateStats: {
+      count: (duplicateStats.count || 0) + 1,
+      lastRedirectedAt: Date.now(),
+    },
+  })
+}
 
-    // Only reset site settings on first install to avoid wiping user config on update
-    if (details?.reason === 'install') {
-      chrome.storage.sync.set({ siteSettings: [] });
-    }
-  });
-});
+const clearExpiredSnooze = async (rule) => {
+  if (!rule?.disabledUntil || rule.disabledUntil > Date.now()) return
+  const { siteSettings = [] } = await chrome.storage.sync.get('siteSettings')
+  const index = siteSettings.findIndex((item) => item.domain === rule.domain)
+  if (index === -1) return
+  const next = [...siteSettings]
+  next[index] = { ...next[index] }
+  delete next[index].disabledUntil
+  await chrome.storage.sync.set({ siteSettings: next })
+}
 
-// Listen for tab update events  
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Check on URL change (immediate), loading (paste scenarios), or complete (fallback)
-  if (changeInfo.url) {
-    await checkForDuplicates(tabId, changeInfo.url);
-  } else if (changeInfo.status === 'loading' && tab.url) {
-    await checkForDuplicates(tabId, tab.url);
-  } else if (changeInfo.status === 'complete' && tab.url) {
-    await checkForDuplicates(tabId, tab.url);
+async function redirectDuplicate(tabId, rawUrl) {
+  if (!isSupportedUrl(rawUrl) || processingTabs.has(tabId)) return
+  processingTabs.add(tabId)
+
+  let activeKey
+  let ownsActiveKey = false
+  try {
+    const currentTab = await chrome.tabs.get(tabId)
+    if (currentTab.pinned) return
+
+    const currentUrl = new URL(rawUrl)
+    const { siteSettings = [] } = await chrome.storage.sync.get('siteSettings')
+    const rule = findSiteRule(currentUrl, siteSettings)
+    const snoozed = typeof rule?.disabledUntil === 'number' && rule.disabledUntil > Date.now()
+    if (rule?.disabled || snoozed) return
+    await clearExpiredSnooze(rule)
+
+    const key = comparisonKey(currentUrl, rule)
+    activeKey = `${currentTab.windowId}:${key}`
+    if (processingKeys.has(activeKey)) return
+    processingKeys.add(activeKey)
+    ownsActiveKey = true
+    const tabs = await chrome.tabs.query({ windowId: currentTab.windowId })
+    const duplicate = tabs
+      .filter((tab) => tab.id !== tabId && !tab.pinned && isSupportedUrl(tab.url))
+      .sort((a, b) => a.index - b.index)
+      .find((tab) => {
+        try {
+          return comparisonKey(new URL(tab.url), rule) === key
+        } catch {
+          return false
+        }
+      })
+
+    if (!duplicate) return
+
+    // Redirect attention to the tab that already exists, then remove only the
+    // newly opened duplicate. This keeps navigation history and page state.
+    await chrome.tabs.update(duplicate.id, { active: true }).catch(() => {})
+    await chrome.windows.update(currentTab.windowId, { focused: true }).catch(() => {})
+    await chrome.tabs.remove(tabId)
+    await recordRedirect()
+  } catch (error) {
+    // A tab can disappear while its URL is changing. That is normal and does
+    // not warrant surfacing an extension error to the user.
+    if (!String(error?.message || error).includes('No tab with id')) {
+      console.error('[MergeX] Duplicate protection failed', error)
+    }
+  } finally {
+    processingTabs.delete(tabId)
+    if (ownsActiveKey) processingKeys.delete(activeKey)
   }
-});
+}
+
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  const { siteSettings } = await chrome.storage.sync.get('siteSettings')
+  const updates = { preventDuplicates: true }
+  if (reason === 'install' || !Array.isArray(siteSettings)) updates.siteSettings = []
+  await chrome.storage.sync.set(updates)
+})
+
+chrome.runtime.onStartup.addListener(() => {
+  // Keep the legacy key truthful for users upgrading from versions where this
+  // was a switch. Runtime behavior no longer depends on it.
+  chrome.storage.sync.set({ preventDuplicates: true })
+})
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) redirectDuplicate(tabId, changeInfo.url)
+  else if (changeInfo.status === 'loading' && tab.url) redirectDuplicate(tabId, tab.url)
+})
